@@ -197,7 +197,7 @@ class IPAddressForm(forms.ModelForm):
         return cleaned_data
 
 @admin.register(IPAddress)
-class IPAddressAdmin(ImportExportActionModelAdmin):
+class IPAddressAdmin(admin.ModelAdmin):
     class Media:
         js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js')
         
@@ -419,34 +419,7 @@ class IPAddressAdmin(ImportExportActionModelAdmin):
             )
             return TemplateResponse(request, "admin/network/ipaddress/subnet_selector.html", context)
             
-        # If subnet is applied, we want to inject the IP grid for that subnet into the changelist
-        subnet_id = request.GET.get('subnet__id__exact')
-        print(f'IP GRID HIT, subnet={subnet_id}')
-        if subnet_id:
-            try:
-                from .models import Subnet
-                subnet = Subnet.objects.get(id=subnet_id)
-                
-                # Generate the HTML grid
-                ips = subnet.ips.all()
-                sorted_ips = sorted(ips, key=lambda x: ipaddress.IPv4Address(x.ip_address))
-                html = '<div class="ip-grid-wrapper" style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">'
-                html += f'<h4 style="margin-top:0; margin-bottom: 20px; color: #334155;">IP Map: {subnet.network_address}</h4>'
-                html += '<div class="ip-grid-container" style="display: flex; flex-wrap: wrap; gap: 6px;">'
-                for ip in sorted_ips:
-                    url = reverse('admin:network_ipaddress_change', args=[ip.pk])
-                    color = '#28a745' if ip.status == 'available' else '#dc3545'
-                    if ip.status == 'reserved': color = '#ffc107'
-                    if ip.status == 'offline': color = '#6c757d'
-                    last_octet = str(ip.ip_address).split('.')[-1]
-                    html += f'<a href="{url}" class="ip-box" title="{ip.ip_address} ({ip.status})" style="background-color: {color};">{last_octet}</a>'
-                html += '</div></div>'
-                
-                extra_context = extra_context or {}
-                extra_context['ip_grid_html'] = html
-                extra_context['title'] = f"IP Addresses in {subnet.network_address}"
-            except Exception as e:
-                extra_context['ip_grid_html'] = f"<div style='color:red;'>Error generating IP Map: {str(e)}</div>"
+        
                 
         return super().changelist_view(request, extra_context=extra_context)
 
