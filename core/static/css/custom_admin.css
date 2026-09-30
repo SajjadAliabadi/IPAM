@@ -753,7 +753,8 @@ body.dark-mode .nav-tabs .nav-link:hover:not(.active) {
 
 
 /* Hide import-export object tools which look like an extra piece */
-ul.object-tools { display: none !important; }
+ul.object-tools a.import_link { display: none !important; }
+ul.object-tools a.export_link { display: none !important; }
 
 
 
