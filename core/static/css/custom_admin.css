@@ -823,3 +823,21 @@ html, body, .app-wrapper, .app-header {
     font-weight: 900;
     margin-right: 6px;
 }
+
+/* Absolute forceful fix for app-header top gap */
+body, html {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+.app-wrapper {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+nav.app-header, #jazzy-navbar {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    top: 0 !important;
+    position: sticky !important;
+    transform: translateY(0) !important;
+    border-top: none !important;
+}
