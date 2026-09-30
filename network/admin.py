@@ -845,7 +845,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 'description': 'Configure Telegram Bot API to receive real-time IPAM alerts.'
             }),
             ('Automation & Provisioning', {
-                'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours'),
+                'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours', 'new_ip_duration_hours', 'clear_all_new_ips'),
                 'description': 'Configure automatic IP allocation, recycling, and reservation settings.'
             }),
             ('System Time', {
