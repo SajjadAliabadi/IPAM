@@ -41,11 +41,12 @@ def run_custom_script(ip_str, script_content):
 
 def scan_single_host(ip_str, methods):
     final_status = 'available'
-    reason = ''
+    reasons = []
+    
     if not methods:
         if ping_host(ip_str):
             final_status = 'used'
-            reason = 'Detected via Default ICMP Ping'
+            reasons.append('ICMP Ping')
     else:
         for method in methods:
             is_used = False
@@ -66,11 +67,14 @@ def scan_single_host(ip_str, methods):
 
             if is_used:
                 final_status = 'used'
-                reason = f"Detected via {method.name} ({method.get_protocol_display()})"
                 if method.protocol == 'tcp_port':
-                    reason += f" Port {method.custom_port}"
-                break
+                    reasons.append(f"{method.name} (Port {method.custom_port})")
+                elif method.protocol == 'icmp':
+                    reasons.append(method.name)
+                else:
+                    reasons.append(f"{method.name}")
                 
+    reason = " | ".join(reasons) if reasons else ""
     return ip_str, final_status, reason
 
 def perform_discovery(subnets_queryset):

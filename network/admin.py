@@ -301,10 +301,20 @@ class IPAddressAdmin(admin.ModelAdmin):
             dr = obj.discovery_reason or ""
             if dr.startswith('Manually'):
                 return mark_safe(f'<span style="color: #8b5cf6; font-weight: 500;"><i class="fas fa-user-shield" style="margin-right:4px;"></i> {dr}</span>')
-            elif dr.startswith('Detected'):
-                return mark_safe(f'<span style="color: #64748b;"><i class="fas fa-satellite-dish" style="margin-right:4px;"></i> {dr}</span>')
-            elif dr:
-                return dr
+            
+            if dr:
+                # Handle multiple methods separated by |
+                methods = [m.strip() for m in dr.split('|') if m.strip()]
+                if not methods:
+                    return dr
+                
+                badges = []
+                for m in methods:
+                    # Clean up 'Detected via' if it exists from legacy data
+                    m = m.replace('Detected via ', '')
+                    badges.append(f'<span style="display: inline-block; background: #e2e8f0; color: #475569; border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-right: 4px; margin-bottom: 2px; white-space: nowrap;"><i class="fas fa-satellite-dish" style="margin-right: 3px; opacity: 0.7;"></i>{m}</span>')
+                return mark_safe('<div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">' + ''.join(badges) + '</div>')
+                
             return "Unknown"
         elif obj.status == 'offline':
             return mark_safe(f'<span style="color: #94a3b8; font-style: italic;">{obj.discovery_reason or "Offline"}</span>')
