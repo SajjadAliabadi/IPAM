@@ -196,6 +196,31 @@ class IPAddressForm(forms.ModelForm):
                 
         return cleaned_data
 
+from django.contrib.admin import SimpleListFilter
+from django.utils import timezone
+from network.models import SystemSettings
+
+class IsNewIPFilter(SimpleListFilter):
+    title = 'Is New'
+    parameter_name = 'is_new'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('true', 'Yes (New)'),
+            ('false', 'No (Old)'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'true':
+            settings = SystemSettings.load()
+            cutoff = timezone.now() - timezone.timedelta(hours=settings.new_ip_duration_hours)
+            return queryset.filter(first_seen__gte=cutoff)
+        if self.value() == 'false':
+            settings = SystemSettings.load()
+            cutoff = timezone.now() - timezone.timedelta(hours=settings.new_ip_duration_hours)
+            return queryset.filter(first_seen__lt=cutoff)
+        return queryset
+
 @admin.register(IPAddress)
 class IPAddressAdmin(admin.ModelAdmin):
     class Media:
@@ -205,7 +230,7 @@ class IPAddressAdmin(admin.ModelAdmin):
     list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
     search_fields = ('ip_address', 'mac_address', 'hostname')
     list_display_links = ('ip_address_display',)
-    list_filter = ('status', 'subnet')
+    list_filter = ('status', 'subnet', IsNewIPFilter)
     ordering = ('ip_address_padded',)
     
     readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at')
@@ -294,7 +319,23 @@ class IPAddressAdmin(admin.ModelAdmin):
     @admin.display(ordering='ip_address_padded', description='IP Address')
     def ip_address_display(self, obj):
         from django.utils.html import format_html
-        return format_html('<span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;">{}</span>', obj.ip_address)
+        from django.utils import timezone
+        import datetime
+        from network.models import SystemSettings
+        
+        # Avoid N+1 queries by caching settings briefly for the request/view, or just loading it
+        # Since SystemSettings is heavily used, let's just get it. 
+        # In SQLite, getting pk=1 254 times is fast, but we can do it faster.
+        if not hasattr(self, '_cached_settings'):
+            self._cached_settings = SystemSettings.load()
+            
+        badge = ""
+        if obj.first_seen:
+            duration_hours = self._cached_settings.new_ip_duration_hours
+            if (timezone.now() - obj.first_seen).total_seconds() < duration_hours * 3600:
+                badge = ' <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 8px; vertical-align: text-top; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3); animation: pulse 2s infinite;">NEW</span>'
+                
+        return format_html('<span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;">{}</span>{}', obj.ip_address, format_html(badge))
 
     def vlan_id_display(self, obj):
         if obj.subnet and obj.subnet.vlan:

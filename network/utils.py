@@ -89,7 +89,7 @@ def perform_discovery(subnets_queryset):
         ip_strs = [str(host) for host in hosts]
         results = []
     
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=150) as executor:
             futures = {executor.submit(scan_single_host, ip, methods): ip for ip in ip_strs}
             for future in concurrent.futures.as_completed(futures):
                 results.append(future.result())

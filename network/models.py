@@ -72,6 +72,7 @@ class SystemSettings(models.Model):
     enable_ssl = models.BooleanField(default=False, verbose_name="Enable HTTPS (SSL)")
     ssl_cert_path = models.CharField(max_length=255, null=True, blank=True, verbose_name="SSL Certificate Path (.crt/.pem)")
     ssl_key_path = models.CharField(max_length=255, null=True, blank=True, verbose_name="SSL Private Key Path (.key)")
+    new_ip_duration_hours = models.IntegerField(default=24, verbose_name="New IP Badge Duration (Hours)", help_text="How long an IP retains the 'New' badge after discovery.")
     
     telegram_bot_token = models.CharField(max_length=255, null=True, blank=True, verbose_name="Telegram Bot Token", help_text="Get this from @BotFather")
     telegram_chat_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="Telegram Chat/Group ID")
