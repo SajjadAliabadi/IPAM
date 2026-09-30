@@ -8,8 +8,6 @@ __pycache__/
 env/
 
 # Django
-db.sqlite3
-media/
 staticfiles/
 
 # OS
