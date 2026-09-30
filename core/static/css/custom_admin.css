@@ -768,12 +768,6 @@ body.dark-mode #change-list-filters {
     z-index: 1000 !important;
 }
 
-/* Also make the table header sticky under the filter bar */
-#result_list thead th {
-    position: sticky !important;
-    top: 135px !important; /* 55px (app-header) + ~80px (change-list-filters) */
-    z-index: 900 !important;
-}
 
 
 /* Hide the empty space / breadcrumbs above the filter bar on IP List */
