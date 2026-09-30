@@ -198,6 +198,7 @@ class IPAddressForm(forms.ModelForm):
 
 @admin.register(IPAddress)
 class IPAddressAdmin(ImportExportActionModelAdmin):
+    change_list_template = 'admin/network/ipaddress/change_list.html'
     form = IPAddressForm
     list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
     search_fields = ('ip_address', 'mac_address', 'hostname')
