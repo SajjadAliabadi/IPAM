@@ -199,7 +199,7 @@ class IPAddressForm(forms.ModelForm):
 @admin.register(IPAddress)
 class IPAddressAdmin(ImportExportActionModelAdmin):
     class Media:
-        js = ('js/ip_map.js?v=5', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js')
+        js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js')
         
     form = IPAddressForm
     list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
@@ -482,7 +482,7 @@ class IPRequestForm(forms.ModelForm):
 @admin.register(IPRequest)
 class IPRequestAdmin(admin.ModelAdmin):
     class Media:
-        js = ('js/req_banner.js?v=3',)
+        js = ('js/req_banner.js',)
     form = IPRequestForm
     list_display = ('user', 'hostname', 'subnet', 'status', 'requested_at', 'assigned_ip')
     list_filter = ('status', 'subnet', 'requested_at')
