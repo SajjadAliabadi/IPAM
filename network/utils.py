@@ -16,15 +16,18 @@ def check_port(ip, port, timeout=0.5):
         return False
 
 def ping_host(ip_str):
-    param_count = '-n' if platform.system().lower() == 'windows' else '-c'
-    param_wait = '-w' if platform.system().lower() == 'windows' else '-W'
-    wait_val = '200' if platform.system().lower() == 'windows' else '1'
+    import platform, subprocess
     try:
-        output = subprocess.run(['ping', param_count, '1', param_wait, wait_val, ip_str], capture_output=True, text=True)
+        if platform.system().lower() == 'windows':
+            output = subprocess.run(['ping', '-n', '1', '-w', '200', ip_str], capture_output=True, timeout=2)
+        else:
+            # -c 1 is universally supported. We use python's timeout to enforce limits safely.
+            output = subprocess.run(['ping', '-c', '1', ip_str], capture_output=True, timeout=2)
         return output.returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
     except Exception:
-        pass
-    return False
+        return False
 
 def run_custom_script(ip_str, script_content):
     local_env = {'ip_address': ip_str, 'result_status': 'available', 'subprocess': subprocess, 'socket': socket}

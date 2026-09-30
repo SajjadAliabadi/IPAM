@@ -776,3 +776,11 @@ html, body, .app-wrapper, .app-header {
     margin-top: 0 !important;
     top: 0 !important;
 }
+
+
+/* FORCE THE NAVBAR TO STICK TO THE TOP TO PREVENT ANY SCROLL GAPS */
+.app-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1039 !important;
+}
