@@ -278,15 +278,15 @@ class IPAddressAdmin(ImportExportActionModelAdmin):
 
     @admin.display(description='status_badge', ordering='status_badge')
     def status_badge(self, obj):
-        from django.utils.html import format_html
+        from django.utils.safestring import mark_safe
         if obj.status == 'available':
-            return format_html('<span style="background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle" style="font-size: 11px;"></i> Available</span>')
+            return mark_safe('<span style="background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-check-circle" style="font-size: 11px;"></i> Available</span>')
         elif obj.status == 'used':
-            return format_html('<span style="background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-server" style="font-size: 11px;"></i> In Use</span>')
+            return mark_safe('<span style="background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-server" style="font-size: 11px;"></i> In Use</span>')
         elif obj.status == 'offline':
-            return format_html('<span style="background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-power-off" style="font-size: 11px;"></i> Offline</span>')
+            return mark_safe('<span style="background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-power-off" style="font-size: 11px;"></i> Offline</span>')
         elif obj.status == 'reserved':
-            return format_html('<span style="background: #fef9c3; color: #854d0e; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-lock" style="font-size: 11px;"></i> Reserved</span>')
+            return mark_safe('<span style="background: #fef9c3; color: #854d0e; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-lock" style="font-size: 11px;"></i> Reserved</span>')
         return obj.get_status_display()
 
     @admin.display(ordering='ip_address_padded', description='IP Address')
