@@ -319,6 +319,7 @@ class IPAddressAdmin(admin.ModelAdmin):
     @admin.display(ordering='ip_address_padded', description='IP Address')
     def ip_address_display(self, obj):
         from django.utils.html import format_html
+        from django.utils.safestring import mark_safe
         from django.utils import timezone
         import datetime
         from network.models import SystemSettings
@@ -335,7 +336,7 @@ class IPAddressAdmin(admin.ModelAdmin):
             if (timezone.now() - obj.first_seen).total_seconds() < duration_hours * 3600:
                 badge = ' <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 8px; vertical-align: text-top; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3); animation: pulse 2s infinite;">NEW</span>'
                 
-        return format_html('<span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;">{}</span>{}', obj.ip_address, format_html(badge))
+        return format_html('<span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;">{}</span>{}', obj.ip_address, mark_safe(badge))
 
     def vlan_id_display(self, obj):
         if obj.subnet and obj.subnet.vlan:
