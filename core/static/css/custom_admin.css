@@ -756,17 +756,8 @@ body.dark-mode .nav-tabs .nav-link:hover:not(.active) {
 ul.object-tools { display: none !important; }
 
 
-/* Make the filter bar sticky on the IP list page */
-body:not(.dark-mode) #change-list-filters {
-    position: sticky !important;
-    top: 55px !important; /* The height of the Jazzmin app-header */
-    z-index: 1000 !important;
-}
-body.dark-mode #change-list-filters {
-    position: sticky !important;
-    top: 55px !important;
-    z-index: 1000 !important;
-}
+
+
 
 
 
@@ -776,9 +767,11 @@ body.model-ipaddress.change-list .app-content-header {
 }
 
 
-body:not(.dark-mode) #change-list-filters {
-    align-self: flex-start !important;
-}
-body.dark-mode #change-list-filters {
-    align-self: flex-start !important;
+
+
+
+/* Ensure absolute zero top margin for the entire application to prevent top white gaps */
+html, body, .app-wrapper, .app-header {
+    margin-top: 0 !important;
+    top: 0 !important;
 }
