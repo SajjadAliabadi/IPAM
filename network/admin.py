@@ -327,6 +327,20 @@ class IPAddressAdmin(admin.ModelAdmin):
                         obj.discovery_reason = f"Manually assigned by {request.user.username}"
         super().save_model(request, obj, form, change)
 
+
+    def save_model(self, request, obj, form, change):
+        from django.utils import timezone
+        if obj.clear_all_new_ips:
+            from network.models import IPAddress
+            import datetime
+            # Push first_seen far into the past so they are no longer "new"
+            IPAddress.objects.filter(first_seen__isnull=False).update(first_seen=timezone.now() - datetime.timedelta(days=365))
+            obj.clear_all_new_ips = False
+            from django.contrib import messages
+            messages.success(request, "All 'New' badges have been cleared successfully.")
+            
+        super().save_model(request, obj, form, change)
+
     def has_add_permission(self, request):
         return False
 
@@ -737,6 +751,20 @@ class AuditLogAdmin(admin.ModelAdmin):
     search_fields = ('message', 'user__username')
     readonly_fields = ('timestamp', 'action', 'model_name', 'user', 'message')
 
+
+    def save_model(self, request, obj, form, change):
+        from django.utils import timezone
+        if obj.clear_all_new_ips:
+            from network.models import IPAddress
+            import datetime
+            # Push first_seen far into the past so they are no longer "new"
+            IPAddress.objects.filter(first_seen__isnull=False).update(first_seen=timezone.now() - datetime.timedelta(days=365))
+            obj.clear_all_new_ips = False
+            from django.contrib import messages
+            messages.success(request, "All 'New' badges have been cleared successfully.")
+            
+        super().save_model(request, obj, form, change)
+
     def has_add_permission(self, request):
         return False
     def has_delete_permission(self, request, obj=None):
@@ -758,7 +786,8 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             'fields': ('theme', 'custom_logo')
         }),
         ('Automation & Provisioning', {
-            'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours'),
+            'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours', 'new_ip_duration_hours', 'clear_all_new_ips'),
+            'description': 'Manage background automation, timeouts, and IP status behaviors.'
         }),
         ('Time Synchronization', {
             'fields': ('timezone', 'time_sync_mode', 'manual_time', 'ntp_server')
@@ -824,6 +853,20 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 'description': mark_safe(f'Configure time synchronization and timezone.<br><br><b>Current System Time:</b> {current_time}')
             }),
         )
+
+
+    def save_model(self, request, obj, form, change):
+        from django.utils import timezone
+        if obj.clear_all_new_ips:
+            from network.models import IPAddress
+            import datetime
+            # Push first_seen far into the past so they are no longer "new"
+            IPAddress.objects.filter(first_seen__isnull=False).update(first_seen=timezone.now() - datetime.timedelta(days=365))
+            obj.clear_all_new_ips = False
+            from django.contrib import messages
+            messages.success(request, "All 'New' badges have been cleared successfully.")
+            
+        super().save_model(request, obj, form, change)
 
     def has_add_permission(self, request):
         return False if self.model.objects.exists() else super().has_add_permission(request)
