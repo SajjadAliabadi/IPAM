@@ -71,96 +71,98 @@ def scan_single_host(ip_str, methods):
                 
     return ip_str, final_status, reason
 
-def perform_discovery(subnet):
+def perform_discovery(subnets_queryset):
     settings = SystemSettings.load()
-    methods = list(subnet.check_methods.filter(is_active=True))
-    if not methods:
-        methods = list(CheckMethod.objects.filter(is_active=True))
-        
-    net = ipaddress.ip_network(subnet.network_address, strict=False)
-    hosts = list(net.hosts())
-    if len(hosts) > 65536:
-        hosts = hosts[:65536]
-        
-    ip_strs = [str(host) for host in hosts]
-    results = []
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-        futures = {executor.submit(scan_single_host, ip, methods): ip for ip in ip_strs}
-        for future in concurrent.futures.as_completed(futures):
-            results.append(future.result())
+    for subnet in subnets_queryset:
+        methods = list(subnet.check_methods.filter(is_active=True))
+        if not methods:
+            methods = list(CheckMethod.objects.filter(is_active=True))
             
-    for ip_str, final_status, reason in results:
-        ip_obj, created = IPAddress.objects.get_or_create(
-            ip_address=ip_str,
-            defaults={'subnet': subnet, 'status': final_status, 'discovery_reason': reason}
-        )
+        net = ipaddress.ip_network(subnet.network_address, strict=False)
+        hosts = list(net.hosts())
+        if len(hosts) > 65536:
+            hosts = hosts[:65536]
         
-        needs_save = False
-        if final_status == 'used':
-            if not ip_obj.first_seen:
-                ip_obj.first_seen = timezone.now()
-            ip_obj.last_seen = timezone.now()
-            ip_obj.last_offline_at = None
-            ip_obj.discovery_reason = reason
-            ip_obj.status = 'used'
-            ip_obj.reserved_at = None
-            needs_save = True
-        else:
-            if ip_obj.status == 'used':
-                ip_obj.status = 'offline'
-                ip_obj.last_offline_at = timezone.now()
-                prev_reason = ip_obj.discovery_reason
-                method_str = prev_reason.replace('Detected via ', '') if prev_reason else 'Unknown Method'
-                time_str = timezone.now().strftime('%Y-%m-%d %H:%M')
-                ip_obj.discovery_reason = f"Last seen on {time_str} via {method_str}"
-                needs_save = True
-            elif ip_obj.status == 'offline':
-                if ip_obj.last_offline_at:
-                    delta = timezone.now() - ip_obj.last_offline_at
-                    if delta.total_seconds() / 3600 >= settings.offline_timeout_hours:
-                        ip_obj.status = 'available'
-                        ip_obj.last_offline_at = None
-                        needs_save = True
-            elif ip_obj.status == 'reserved':
-                if ip_obj.reserved_at:
-                    delta = timezone.now() - ip_obj.reserved_at
-                    if delta.total_seconds() / 3600 >= settings.reservation_timeout_hours:
-                        ip_obj.status = 'available'
-                        ip_obj.reserved_at = None
-                        ip_obj.assigned_to = None
-                        ip_obj.hostname = ''
-                        ip_obj.discovery_reason = "Reservation Expired (Auto-released)"
-                        needs_save = True
-                        AuditLog.objects.create(
-                            action='SYSTEM',
-                            model_name='IPAddress',
-                            message=f"Reservation expired for {ip_obj.ip_address}. Automatically released back to pool."
-                        )
-            else:
-                if ip_obj.status != 'available':
-                    ip_obj.status = 'available'
-                    needs_save = True
-        
-        ip_obj.last_checked = timezone.now()
-        ip_obj.save()
-
-    subnet.last_scanned = timezone.now()
-    subnet.save()
-    AuditLog.objects.create(
-        action='SCAN',
-        model_name='Subnet',
-        message=f"Discovery scan executed for subnet {subnet.name} ({subnet.network_address})"
-    )
+        ip_strs = [str(host) for host in hosts]
+        results = []
     
-    if settings.alert_on_subnet_full:
-        total = subnet.ips.count()
-        used = subnet.ips.filter(status='used').count()
-        if total > 0 and (used / total) >= 0.9:
-            try:
-                from .alerts import send_telegram_alert
-                send_telegram_alert(f"Subnet Almost Full: {subnet.network_address} is {int(used/total*100)}% full.")
-            except: pass
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
+            futures = {executor.submit(scan_single_host, ip, methods): ip for ip in ip_strs}
+            for future in concurrent.futures.as_completed(futures):
+                results.append(future.result())
+            
+        for ip_str, final_status, reason in results:
+            ip_obj, created = IPAddress.objects.get_or_create(
+                ip_address=ip_str,
+                defaults={'subnet': subnet, 'status': final_status, 'discovery_reason': reason}
+            )
+        
+            needs_save = False
+            if final_status == 'used':
+                if not ip_obj.first_seen:
+                    ip_obj.first_seen = timezone.now()
+                ip_obj.last_seen = timezone.now()
+                ip_obj.last_offline_at = None
+                ip_obj.discovery_reason = reason
+                ip_obj.status = 'used'
+                ip_obj.reserved_at = None
+                needs_save = True
+            else:
+                if ip_obj.status == 'used':
+                    ip_obj.status = 'offline'
+                    ip_obj.last_offline_at = timezone.now()
+                    prev_reason = ip_obj.discovery_reason
+                    method_str = prev_reason.replace('Detected via ', '') if prev_reason else 'Unknown Method'
+                    time_str = timezone.now().strftime('%Y-%m-%d %H:%M')
+                    ip_obj.discovery_reason = f"Last seen on {time_str} via {method_str}"
+                    needs_save = True
+                elif ip_obj.status == 'offline':
+                    if ip_obj.last_offline_at:
+                        delta = timezone.now() - ip_obj.last_offline_at
+                        if delta.total_seconds() / 3600 >= settings.offline_timeout_hours:
+                            ip_obj.status = 'available'
+                            ip_obj.last_offline_at = None
+                            needs_save = True
+                elif ip_obj.status == 'reserved':
+                    if ip_obj.reserved_at:
+                        delta = timezone.now() - ip_obj.reserved_at
+                        if delta.total_seconds() / 3600 >= settings.reservation_timeout_hours:
+                            ip_obj.status = 'available'
+                            ip_obj.reserved_at = None
+                            ip_obj.assigned_to = None
+                            ip_obj.hostname = ''
+                            ip_obj.discovery_reason = "Reservation Expired (Auto-released)"
+                            needs_save = True
+                            AuditLog.objects.create(
+                                action='SYSTEM',
+                                model_name='IPAddress',
+                                message=f"Reservation expired for {ip_obj.ip_address}. Automatically released back to pool."
+                            )
+                else:
+                    if ip_obj.status != 'available':
+                        ip_obj.status = 'available'
+                        needs_save = True
+        
+            ip_obj.last_checked = timezone.now()
+            ip_obj.save()
+
+        subnet.last_scanned = timezone.now()
+        subnet.save()
+        AuditLog.objects.create(
+            action='SCAN',
+            model_name='Subnet',
+            message=f"Discovery scan executed for subnet {subnet.name} ({subnet.network_address})"
+        )
+    
+        if settings.alert_on_subnet_full:
+            total = subnet.ips.count()
+            used = subnet.ips.filter(status='used').count()
+            if total > 0 and (used / total) >= 0.9:
+                try:
+                    from .alerts import send_telegram_alert
+                    send_telegram_alert(f"Subnet Almost Full: {subnet.network_address} is {int(used/total*100)}% full.")
+                except: pass
 
 def perform_ip_discovery(ips_queryset):
     settings = SystemSettings.load()
