@@ -754,3 +754,37 @@ body.dark-mode .nav-tabs .nav-link:hover:not(.active) {
 
 /* Hide import-export object tools which look like an extra piece */
 ul.object-tools { display: none !important; }
+
+
+/* Make the filter bar sticky on the IP list page */
+body:not(.dark-mode) #change-list-filters {
+    position: sticky !important;
+    top: 55px !important; /* The height of the Jazzmin app-header */
+    z-index: 1000 !important;
+}
+body.dark-mode #change-list-filters {
+    position: sticky !important;
+    top: 55px !important;
+    z-index: 1000 !important;
+}
+
+/* Also make the table header sticky under the filter bar */
+#result_list thead th {
+    position: sticky !important;
+    top: 135px !important; /* 55px (app-header) + ~80px (change-list-filters) */
+    z-index: 900 !important;
+}
+
+
+/* Hide the empty space / breadcrumbs above the filter bar on IP List */
+body.model-ipaddress.change-list .app-content-header {
+    display: none !important;
+}
+
+
+body:not(.dark-mode) #change-list-filters {
+    align-self: flex-start !important;
+}
+body.dark-mode #change-list-filters {
+    align-self: flex-start !important;
+}
