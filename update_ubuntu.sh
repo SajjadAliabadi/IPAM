@@ -9,7 +9,8 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo "[1/4] Pulling latest changes from Git..."
-git pull origin main  # Change 'main' to your branch name if different
+git fetch origin main
+git reset --hard origin/main  # Change 'main' to your branch name if different
 
 echo "[2/4] Activating Virtual Environment and updating dependencies..."
 source venv/bin/activate
