@@ -753,8 +753,29 @@ body.dark-mode .nav-tabs .nav-link:hover:not(.active) {
 
 
 /* Hide import-export object tools which look like an extra piece */
-ul.object-tools a.import_link { display: none !important; }
-ul.object-tools a.export_link { display: none !important; }
+
+/* Fix django-import-export button icons in Jazzmin */
+a.import_link::before, a.export_link::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    margin-right: 6px;
+}
+a.import_link::before {
+    content: "56f"; /* fa-file-import */
+}
+a.export_link::before {
+    content: "56e"; /* fa-file-export */
+}
+a.import_link i, a.export_link i {
+    display: none !important; /* Hide original icon if it overlaps */
+}
+a.import_link, a.export_link {
+    display: inline-flex !important;
+    align-items: center;
+    padding-left: 12px;
+}
+
+
 
 
 
@@ -783,4 +804,22 @@ html, body, .app-wrapper, .app-header {
     position: sticky !important;
     top: 0 !important;
     z-index: 1039 !important;
+}
+
+/* Fix django-import-export background icon overlap in Jazzmin */
+.import_link, .export_link {
+    background-image: none !important;
+    padding-left: 10px !important;
+}
+.import_link::before {
+    content: '\f56f';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 6px;
+}
+.export_link::before {
+    content: '\f56e';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 6px;
 }
