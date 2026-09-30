@@ -71,3 +71,32 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
+
+document.addEventListener('DOMContentLoaded', function() {
+    // IP Request Badge
+    fetch('/admin/network/iprequest/api/pending-count/')
+        .then(r => r.json())
+        .then(data => {
+            if (data.count > 0) {
+                const links = document.querySelectorAll('.nav-sidebar .nav-link p');
+                links.forEach(link => {
+                    if (link.innerText.toLowerCase().includes('ip request')) {
+                        const badge = document.createElement('span');
+                        badge.className = 'right badge badge-danger';
+                        badge.style.animation = 'pulse 2s infinite';
+                        badge.innerText = data.count + ' New';
+                        
+                        // Add pulse animation CSS dynamically
+                        if (!document.getElementById('pulse-anim')) {
+                            const style = document.createElement('style');
+                            style.id = 'pulse-anim';
+                            style.innerHTML = '@keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }';
+                            document.head.appendChild(style);
+                        }
+                        
+                        link.appendChild(badge);
+                    }
+                });
+            }
+        }).catch(err => console.log('Badge fetch failed:', err));
+});

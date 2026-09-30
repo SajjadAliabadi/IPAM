@@ -548,6 +548,7 @@ class IPRequestAdmin(admin.ModelAdmin):
         custom_urls = [
             path('<int:request_id>/process/', self.admin_site.admin_view(self.process_request_view), name='network_iprequest_process'),
                         path('<int:request_id>/auto-assign/', self.admin_site.admin_view(self.auto_assign_api), name='network_iprequest_auto_assign'),
+            path('api/pending-count/', self.admin_site.admin_view(self.pending_count_api), name='network_iprequest_pending_count'),
             path('api/subnet-map/<int:subnet_id>/', self.admin_site.admin_view(self.subnet_map_api), name='network_iprequest_subnet_map'),
         ]
         return custom_urls + urls
@@ -558,6 +559,13 @@ class IPRequestAdmin(admin.ModelAdmin):
         ips = IPAddress.objects.filter(subnet_id=subnet_id).order_by('ip_address_padded')
         data = [{'id': ip.id, 'ip': ip.ip_address, 'status': ip.status} for ip in ips]
         return JsonResponse({'ips': data})
+
+    
+    def pending_count_api(self, request):
+        from django.http import JsonResponse
+        from .models import IPRequest
+        count = IPRequest.objects.filter(status='pending').count()
+        return JsonResponse({'count': count})
 
     def process_request_view(self, request, request_id):
         req = IPRequest.objects.get(id=request_id)
