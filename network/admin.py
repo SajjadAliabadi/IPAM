@@ -198,7 +198,9 @@ class IPAddressForm(forms.ModelForm):
 
 @admin.register(IPAddress)
 class IPAddressAdmin(ImportExportActionModelAdmin):
-    change_list_template = 'admin/network/ipaddress/change_list.html'
+    class Media:
+        js = ('js/ip_map.js?v=4', 'js/ip_status_confirm.js', 'js/ip_banner.js')
+        
     form = IPAddressForm
     list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
     search_fields = ('ip_address', 'mac_address', 'hostname')
@@ -420,6 +422,7 @@ class IPAddressAdmin(ImportExportActionModelAdmin):
             
         # If subnet is applied, we want to inject the IP grid for that subnet into the changelist
         subnet_id = request.GET.get('subnet__id__exact')
+        print(f'IP GRID HIT, subnet={subnet_id}')
         if subnet_id:
             try:
                 from .models import Subnet
@@ -443,8 +446,8 @@ class IPAddressAdmin(ImportExportActionModelAdmin):
                 extra_context = extra_context or {}
                 extra_context['ip_grid_html'] = html
                 extra_context['title'] = f"IP Addresses in {subnet.network_address}"
-            except Exception:
-                pass
+            except Exception as e:
+                extra_context['ip_grid_html'] = f"<div style='color:red;'>Error generating IP Map: {str(e)}</div>"
                 
         return super().changelist_view(request, extra_context=extra_context)
 
