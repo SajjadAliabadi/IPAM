@@ -1,0 +1,211 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static jazzmin %}
+{% get_jazzmin_ui_tweaks as jazzmin_ui %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block content_title %} {% trans 'Dashboard' %} {% endblock %}
+
+{% block breadcrumbs %}
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item">{% trans 'Dashboard' %}</li>
+    </ol>
+{% endblock %}
+
+
+{% block content %}
+{% load dashboard_tags %}
+{% get_dashboard_stats as stats %}
+    <div class="col-12 mb-4">
+        <h4 class="mb-3" style="color: #334155; font-weight: 600;"><i class="fas fa-tachometer-alt" style="margin-right: 8px;"></i> IPAM Overview</h4>
+        <div class="row">
+            <div class="col-lg-3 col-6">
+                <div class="small-box" style="background: linear-gradient(135deg, #10b981, #34d399); color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+                    <a href="/admin/network/ipaddress/?status__exact=available" style="color: inherit; text-decoration: none; display: block;">
+                        <div class="inner" style="padding: 20px;">
+                            <h3 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">{{ stats.available_ips }}</h3>
+                            <p style="font-size: 1.1rem; opacity: 0.9; margin: 0;">Available IPs</p>
+                        </div>
+                        <div class="icon" style="color: rgba(255,255,255,0.2);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.1); padding: 8px 0; text-align: center; font-size: 14px; font-weight: 600; transition: background 0.3s;">
+                            View List <i class="fas fa-arrow-circle-right" style="margin-left: 5px;"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-6">
+                <div class="small-box" style="background: linear-gradient(135deg, #ef4444, #f87171); color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+                    <a href="/admin/network/ipaddress/?status__exact=used" style="color: inherit; text-decoration: none; display: block;">
+                        <div class="inner" style="padding: 20px;">
+                            <h3 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">{{ stats.used_ips }}</h3>
+                            <p style="font-size: 1.1rem; opacity: 0.9; margin: 0;">In Use</p>
+                        </div>
+                        <div class="icon" style="color: rgba(255,255,255,0.2);">
+                            <i class="fas fa-network-wired"></i>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.1); padding: 8px 0; text-align: center; font-size: 14px; font-weight: 600; transition: background 0.3s;">
+                            View List <i class="fas fa-arrow-circle-right" style="margin-left: 5px;"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-6">
+                <div class="small-box" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+                    <a href="/admin/network/ipaddress/?status__exact=reserved" style="color: inherit; text-decoration: none; display: block;">
+                        <div class="inner" style="padding: 20px;">
+                            <h3 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">{{ stats.reserved_ips }}</h3>
+                            <p style="font-size: 1.1rem; opacity: 0.9; margin: 0;">Reserved</p>
+                        </div>
+                        <div class="icon" style="color: rgba(255,255,255,0.2);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.1); padding: 8px 0; text-align: center; font-size: 14px; font-weight: 600; transition: background 0.3s;">
+                            View List <i class="fas fa-arrow-circle-right" style="margin-left: 5px;"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-6">
+                <div class="small-box" style="background: linear-gradient(135deg, #64748b, #94a3b8); color: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+                    <a href="/admin/network/ipaddress/?status__exact=offline" style="color: inherit; text-decoration: none; display: block;">
+                        <div class="inner" style="padding: 20px;">
+                            <h3 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">{{ stats.offline_ips }}</h3>
+                            <p style="font-size: 1.1rem; opacity: 0.9; margin: 0;">Offline</p>
+                        </div>
+                        <div class="icon" style="color: rgba(255,255,255,0.2);">
+                            <i class="fas fa-power-off"></i>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.1); padding: 8px 0; text-align: center; font-size: 14px; font-weight: 600; transition: background 0.3s;">
+                            View List <i class="fas fa-arrow-circle-right" style="margin-left: 5px;"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% get_side_menu using="app_list" as dashboard_list %}
+    {% if dashboard_list %}
+        {% widthratio dashboard_list|length 2 1 as middle %}
+    {% endif %}
+
+    <div class="col-lg-12 col-12">
+        <div class="row">
+            <div class="col-md-6 col-sm-12">
+                {% for app in dashboard_list %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="m-0">{{ app.name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tbody>
+                                {% for model in app.models %}
+                                    <tr>
+                                        <td>
+                                            {% if model.url %}<a href="{{ model.url }}">{{ model.name }}</a>{% else %}{{ model.name }}{% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group float-end">
+                                                {% if model.add_url %}
+                                                    <a href="{{ model.add_url }}" class="btn btn-sm {{ jazzmin_ui.button_classes.success }} addlink">{% trans 'Add' %}</a>
+                                                {% endif %}
+                                                {% if model.url %}
+                                                    {% if model.view_only %}
+                                                        <a href="{{ model.url }}" class="btn btn-sm {{ jazzmin_ui.button_classes.info }} viewlink">{% trans 'View' %}</a>
+                                                    {% else %}
+                                                        <a href="{{ model.url }}" class="btn btn-sm {{ jazzmin_ui.button_classes.info }} changelink">{% if model.custom %}{% trans 'Go' %}{% else %}{% trans 'Change' %}{% endif %}</a>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if forloop.counter == middle|add:"0" %}
+                    </div>
+                    <div class="col-md-6 col-sm-12">
+                    {% endif %}
+
+                {% endfor %}
+                </div>
+        </div>
+
+    </div>
+    <div class="col-lg-12 col-12 mt-3">
+        <div id="content-related">
+            <div class="card" style="box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div class="card-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; border-radius: 8px 8px 0 0;">
+                    <h3 class="card-title" style="font-weight: 600; color: #334155; margin: 0;"><i class="fas fa-history" style="margin-right: 8px; opacity: 0.7;"></i> {% trans 'Recent Actions' %}</h3>
+                </div>
+                <div class="card-body" id="recent-actions-module" style="padding: 20px;">
+                {% load log %}
+                {% get_admin_log 6 as admin_log for_user user %}
+                {% if not admin_log %}
+                    <p>{% trans 'None available' %}</p>
+                {% else %}
+                    <div class="timeline">
+                        {% for entry in admin_log %}
+                            <div>
+                                {% if entry.is_change %}
+                                    <i class="fas fa-edit bg-gray text-xs"></i>
+                                {% elif entry.is_deletion %}
+                                    <i class="fas fa-trash bg-danger text-xs"></i>
+                                {% elif entry.is_addition %}
+                                    <i class="fas fa-plus-circle bg-success text-xs"></i>
+                                {% endif %}
+
+                                <div class="timeline-item">
+                                    <span class="time"><i class="fas fa-clock"></i> {% blocktrans with timesince=entry.action_time|timesince %}{{ timesince }} ago{% endblocktrans %}</span>
+                                    <h3 class="timeline-header no-border">
+                                        {% if entry.is_deletion or not entry.get_admin_url %}
+                                            {{ entry.object_repr }}
+                                        {% else %}
+                                            <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                                        {% endif %}
+
+                                        {% if entry.model %}
+                                            <span class="mini quiet">
+                                                {% filter capfirst %}
+                                                    {{ entry.model }}
+                                                {% endfilter %}
+                                            </span>
+                                        {% endif %}
+                                    </h3>
+                                    {% if not entry.is_deletion %}
+                                        <div class="timeline-body">
+                                            {% if entry.is_addition %}
+                                                {{ entry }}
+                                            {% else %}
+                                                <ul style="list-style: none; padding: 0;">
+                                                    {% action_message_to_list entry as action_message_list %}
+                                                    {% for action_message in action_message_list %}
+                                                        <li>{{ action_message.msg|style_bold_first_word }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div>
+                            <i class="fa fa-clock bg-gray"></i>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

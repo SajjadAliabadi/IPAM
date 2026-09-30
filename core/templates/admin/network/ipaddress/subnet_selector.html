@@ -1,0 +1,162 @@
+﻿{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block content %}
+<style>
+    .subnet-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none !important;
+        display: block;
+        color: inherit !important;
+    }
+    .subnet-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+    .subnet-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .subnet-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+    }
+    .subnet-dept {
+        font-size: 0.875rem;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 4px 12px;
+        border-radius: 20px;
+    }
+    .subnet-vlan {
+        font-size: 0.875rem;
+        color: #4338ca;
+        background: #e0e7ff;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .progress-bar-container {
+        width: 100%;
+        background-color: #e2e8f0;
+        border-radius: 999px;
+        height: 8px;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        background-color: #3b82f6;
+        height: 100%;
+        border-radius: 999px;
+    }
+    .subnet-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        color: #475569;
+    }
+</style>
+
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2 style="font-weight: 600; color: #1e293b; margin-bottom: 5px;">Select a Subnet</h2>
+        <p style="color: #64748b;">Choose a subnet to view and manage its IP addresses.</p>
+    </div>
+</div>
+
+<div class="row">
+    {% for stat in subnet_stats %}
+    <div class="col-12 col-md-6 col-lg-4">
+                <div class="subnet-card" style="position: relative;">
+            <a href="?subnet__id__exact={{ stat.obj.id }}" style="text-decoration: none; color: inherit; display: block;">
+                <div class="subnet-header">
+                    <h3 class="subnet-title">{{ stat.obj.network_address }}</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        {% if stat.obj.vlan %}
+                            <span class="subnet-vlan">VLAN {{ stat.obj.vlan.vlan_id }}</span>
+                        {% endif %}
+                        {% if stat.obj.name %}
+                            <span class="subnet-dept">{{ stat.obj.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: {{ stat.percent }}%; background-color: {% if stat.percent > 90 %}#ef4444{% elif stat.percent > 70 %}#f59e0b{% else %}#10b981{% endif %};"></div>
+                </div>
+                
+                <div class="subnet-stats" style="margin-bottom: 10px;">
+                    <span><strong>{{ stat.used }}</strong> Used</span>
+                    <span><strong>{{ stat.available }}</strong> Available</span>
+                    <span>{{ stat.total }} Total</span>
+                </div>
+            </a>
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; color: #64748b;">
+                    <i class="fas fa-clock"></i> 
+                    {% if stat.obj.last_scanned %}
+                        Last scan: {{ stat.obj.last_scanned|timesince }} ago
+                    {% else %}
+                        Never scanned
+                    {% endif %}
+                </span>
+                <a href="{% url 'admin:network_subnet_scan' stat.obj.id %}" class="btn-scan-subnet" style="font-size: 13px; background: #f1f5f9; color: #3b82f6; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    <i class="fas fa-sync-alt"></i> Scan Subnet
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            No subnets found. <a href="{% url 'admin:network_subnet_add' %}">Add a subnet first.</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const scanBtns = document.querySelectorAll('.btn-scan-subnet');
+    scanBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const originalHtml = this.innerHTML;
+            this.innerHTML = 'Scanning...';
+            this.style.pointerEvents = 'none';
+            this.style.opacity = '0.7';
+            
+            fetch(this.href)
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Scan failed or timed out.');
+                        this.innerHTML = originalHtml;
+                        this.style.pointerEvents = 'auto';
+                        this.style.opacity = '1';
+                    }
+                })
+                .catch(err => {
+                    alert('Network error during scan.');
+                    this.innerHTML = originalHtml;
+                    this.style.pointerEvents = 'auto';
+                    this.style.opacity = '1';
+                });
+        });
+    });
+});
+</script>
+{% endblock %}
+
+
+

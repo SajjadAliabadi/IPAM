@@ -1,0 +1,112 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<style>
+    .process-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 50vh;
+        text-align: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 25px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .status-text {
+        font-size: 22px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 10px;
+    }
+    .sub-text {
+        color: #64748b;
+        font-size: 16px;
+    }
+    .result-box {
+        display: none;
+        padding: 30px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+        margin-top: 20px;
+        max-width: 500px;
+        width: 100%;
+    }
+    .ip-display {
+        font-size: 32px;
+        font-weight: bold;
+        color: #10b981;
+        margin: 20px 0;
+        padding: 15px;
+        background: #f0fdf4;
+        border-radius: 8px;
+        letter-spacing: 1px;
+    }
+    .btn-return {
+        display: inline-block;
+        padding: 10px 24px;
+        background: #3b82f6;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        margin-top: 20px;
+    }
+    .btn-return:hover { background: #2563eb; color: #fff; }
+</style>
+
+<div class="process-container">
+    <div id="loadingUI">
+        <div class="spinner"></div>
+        <div class="status-text">Searching for an available IP address...</div>
+        <div class="sub-text">Please wait a moment while the system scans the selected subnet.</div>
+    </div>
+    
+    <div id="resultUI" class="result-box">
+        <div id="resultIcon" style="font-size: 48px; margin-bottom: 15px;">✅</div>
+        <div id="resultTitle" class="status-text">Request Approved Successfully!</div>
+        <div id="resultDesc" class="sub-text">The following IP address has been assigned to your hostname:</div>
+        <div id="ipAddress" class="ip-display">--.--.--.--</div>
+        <a href="{% url 'admin:network_iprequest_changelist' %}" class="btn-return">Return to Requests List</a>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Trigger the auto-assign API
+        fetch("{% url 'admin:network_iprequest_auto_assign' req.id %}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingUI').style.display = 'none';
+                document.getElementById('resultUI').style.display = 'block';
+                
+                if (data.status === 'success') {
+                    document.getElementById('ipAddress').textContent = data.ip;
+                } else {
+                    document.getElementById('resultIcon').textContent = '⚠️';
+                    document.getElementById('resultTitle').textContent = 'Pending Admin Approval';
+                    document.getElementById('resultDesc').textContent = data.message;
+                    document.getElementById('ipAddress').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingUI').style.display = 'none';
+                document.getElementById('resultUI').style.display = 'block';
+                document.getElementById('resultIcon').textContent = '❌';
+                document.getElementById('resultTitle').textContent = 'System Error';
+                document.getElementById('resultDesc').textContent = 'An error occurred while communicating with the server.';
+                document.getElementById('ipAddress').style.display = 'none';
+            });
+    });
+</script>
+{% endblock %}

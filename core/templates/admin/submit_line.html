@@ -1,0 +1,75 @@
+﻿{% load i18n admin_urls %}
+
+<div class="custom-submit-row" style="
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    
+    padding: 16px 24px;
+    
+    border-radius: 12px;
+    width: 100%;
+    margin-top: 20px;
+    box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.02);
+">
+    
+    {% if show_delete_link and original %}
+        {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+        <a href="{% add_preserved_filters delete_url %}" class="btn custom-btn-danger" style="margin-right: auto;">{% trans "Delete" %}</a>
+    {% endif %}
+
+    {% if show_save_as_new %}
+        <input type="submit" class="btn custom-btn-secondary" value="{% trans 'Save as new' %}" name="_saveasnew">
+    {% endif %}
+    
+    {% if show_save_and_add_another %}
+        <input type="submit" class="btn custom-btn-secondary" value="{% trans 'Save and add another' %}" name="_addanother">
+    {% endif %}
+    
+    {% if show_save_and_continue %}
+        <input type="submit" class="btn custom-btn-secondary" value="{% if can_change %}{% trans 'Save and continue editing' %}{% else %}{% trans 'Save and view' %}{% endif %}" name="_continue">
+    {% endif %}
+
+    {% if original %}
+        <a href="history/" class="btn custom-btn-secondary">{% trans "History" %}</a>
+    {% endif %}
+    
+    {% if show_save %}
+        <input type="submit" value="{% trans 'Save' %}" class="btn custom-btn-primary" name="_save">
+    {% endif %}
+
+</div>
+
+<style>
+.custom-submit-row .btn {
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    border: none !important;
+    margin: 0 !important;
+    text-decoration: none !important;
+}
+.custom-btn-primary { background-color: #0f172a !important; color: white !important; }
+.custom-btn-primary:hover { background-color: #1e293b !important; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important; color: white !important;}
+
+.custom-btn-secondary { background-color: #ffffff !important; color: #334155 !important; border: 1px solid #cbd5e1 !important; }
+.custom-btn-secondary:hover { background-color: #f1f5f9 !important; color: #0f172a !important; }
+
+.custom-btn-danger { background-color: #fef2f2 !important; color: #b91c1c !important; border: 1px solid #fecaca !important; }
+.custom-btn-danger:hover { background-color: #fee2e2 !important; color: #7f1d1d !important; }
+
+/* Force Jazzmin wrappers to disappear so our box takes full control */
+#jazzy-actions { padding: 0 !important; border: none !important; background: transparent !important; box-shadow: none !important; margin-top:0 !important; display: block !important; }
+#jazzy-actions > .d-flex { display: none !important; }
+.object-tools { display: none !important; } /* Hide the old history button that Jazzmin injects */
+</style>
+
