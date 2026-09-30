@@ -480,7 +480,7 @@ class IPRequestForm(forms.ModelForm):
 @admin.register(IPRequest)
 class IPRequestAdmin(admin.ModelAdmin):
     class Media:
-        js = ('js/req_banner.js?v=2',)
+        js = ('js/req_banner.js?v=3',)
     form = IPRequestForm
     list_display = ('user', 'hostname', 'subnet', 'status', 'requested_at', 'assigned_ip')
     list_filter = ('status', 'subnet', 'requested_at')
