@@ -19,7 +19,8 @@
         mapContainer.style.borderRadius = '8px';
         mapContainer.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
         
-        targetContainer.parentNode.insertBefore(mapContainer, targetContainer);
+        targetContainer.parentNode.insertBefore(mapContainer, targetContainer.nextSibling);
+        mapContainer.style.marginTop = '20px';
         
         mapContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading IP map...</div>';
         
