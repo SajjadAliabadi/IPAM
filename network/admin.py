@@ -81,6 +81,38 @@ class SubnetForm(forms.ModelForm):
 
 @admin.register(Subnet)
 class SubnetAdmin(ImportExportActionModelAdmin):
+    @admin.display(description='Usage')
+    def usage_progress(self, obj):
+        from django.utils.html import format_html
+        
+        total = obj.ipaddress_set.count()
+        used = obj.ipaddress_set.filter(status='used').count()
+        if total == 0:
+            return format_html('<span style="color: #94a3b8; font-style: italic;">No IPs</span>')
+            
+        percent = int((used / total) * 100)
+        color = '#10b981' if percent < 70 else ('#f59e0b' if percent < 90 else '#ef4444')
+        
+        return format_html(
+            '<div style="width: 100px; background: #e2e8f0; border-radius: 999px; height: 8px; margin-top: 6px; overflow: hidden;" title="{}% Used">'
+            '<div style="width: {}%; background: {}; height: 100%; border-radius: 999px;"></div>'
+            '</div>'
+            '<div style="font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600;">{} / {}</div>',
+            percent, percent, color, used, total
+        )
+
+    @admin.display(description='Actions')
+    def quick_actions(self, obj):
+        from django.utils.html import format_html
+        from django.urls import reverse
+        scan_url = reverse('admin:network_subnet_scan', args=[obj.pk])
+        return format_html(
+            '<a href="{}" class="btn btn-sm btn-outline-primary" style="padding: 2px 8px; font-size: 12px; font-weight: 600; border-radius: 4px; transition: all 0.2s;" onclick="this.innerHTML=\'Scanning...\'; this.style.pointerEvents=\'none\'; this.style.opacity=\'0.7\';">'
+            '<i class="fas fa-sync-alt" style="margin-right: 4px;"></i> Scan'
+            '</a>',
+            scan_url
+        )
+
     form = SubnetForm
     formfield_overrides = {
         models.ManyToManyField: {'widget': forms.CheckboxSelectMultiple},
