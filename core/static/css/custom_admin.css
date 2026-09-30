@@ -841,3 +841,8 @@ nav.app-header, #jazzy-navbar {
     transform: translateY(0) !important;
     border-top: none !important;
 }
+
+/* Disable elastic overscroll bounce to prevent white gaps at the top when scrolling up */
+html, body {
+    overscroll-behavior-y: none !important;
+}
