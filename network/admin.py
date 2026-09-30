@@ -490,8 +490,11 @@ class IPAddressAdmin(admin.ModelAdmin):
         return res
         
     def changelist_view(self, request, extra_context=None):
-        # If no subnet filter is applied and not searching, show the subnet selector page
-        if 'subnet__id__exact' not in request.GET and 'q' not in request.GET and 'status__exact' not in request.GET:
+        allowed_keys = {'p', 'o', 'e'}
+        request_keys = set(request.GET.keys())
+        
+        if not request_keys - allowed_keys:
+            # If no subnet or other filters are selected, render the subnet selector page
             from .models import Subnet
             subnets = Subnet.objects.all()
             
