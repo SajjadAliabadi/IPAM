@@ -565,7 +565,7 @@ class IPRequestAdmin(admin.ModelAdmin):
             send_telegram_alert(f"New IP Request: User {obj.user.username if obj.user else 'System'} requested an IP for hostname {obj.hostname}")
         except: pass
 
-        if settings.auto_assign_ips and obj.status == 'pending':
+        if settings.auto_assign_ips and obj.subnet.enable_auto_assign and obj.status == 'pending':
             return HttpResponseRedirect(reverse('admin:network_iprequest_process', args=[obj.id]))
             
         return super().response_add(request, obj, post_url_continue)
@@ -596,6 +596,10 @@ class IPRequestAdmin(admin.ModelAdmin):
         time.sleep(3) 
         req = IPRequest.objects.get(id=request_id)
         
+        if not req.subnet.enable_auto_assign:
+            from django.http import JsonResponse
+            return JsonResponse({'status': 'error', 'message': 'Auto-assignment is disabled for this subnet.'})
+            
         qs = IPAddress.objects.filter(subnet=req.subnet, status='available').order_by('ip_address_padded')
         
         # Filter by range if specified
