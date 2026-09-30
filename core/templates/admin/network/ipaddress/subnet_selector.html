@@ -70,10 +70,15 @@
     }
 </style>
 
-<div class="row">
-    <div class="col-12 mb-4">
-        <h2 style="font-weight: 600; color: #1e293b; margin-bottom: 5px;">Select a Subnet</h2>
-        <p style="color: #64748b;">Choose a subnet to view and manage its IP addresses.</p>
+<div class="row align-items-center mb-4">
+    <div class="col-md-8">
+        <h2 style="font-weight: 600; color: #1e293b; margin-top: 0; margin-bottom: 5px;">Select a Subnet</h2>
+        <p style="color: #64748b; margin-bottom: 0;">Choose a subnet to view and manage its IP addresses.</p>
+    </div>
+    <div class="col-md-4 text-md-right mt-3 mt-md-0" style="text-align: right;">
+        <a href="{% url 'admin:network_subnet_add' %}" class="btn btn-success" style="font-weight: 600;">
+            <i class="fas fa-plus"></i> Add New Subnet
+        </a>
     </div>
 </div>
 

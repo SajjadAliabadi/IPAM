@@ -21,8 +21,7 @@ def ping_host(ip_str):
     wait_val = '200' if platform.system().lower() == 'windows' else '1'
     try:
         output = subprocess.run(['ping', param_count, '1', param_wait, wait_val, ip_str], capture_output=True, text=True)
-        if "TTL=" in output.stdout.upper():
-            return True
+        return output.returncode == 0
     except Exception:
         pass
     return False
