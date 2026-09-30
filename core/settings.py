@@ -51,6 +51,7 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 JAZZMIN_SETTINGS = {
+    "use_google_fonts_cdn": False,
     "site_title": "Enterprise IPAM",
     "site_header": "IPAM",
     "site_brand": "IP Management",
@@ -180,3 +181,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Media files (Uploads like logos)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1", "http://localhost"]
