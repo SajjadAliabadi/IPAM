@@ -17,7 +17,7 @@ def get_dashboard_stats():
     
     settings = SystemSettings.load()
     cutoff_time = timezone.now() - timezone.timedelta(hours=settings.new_ip_duration_hours)
-    new_ips = IPAddress.objects.filter(first_seen__gte=cutoff_time).count()
+    new_ips = IPAddress.objects.filter(first_seen__gte=cutoff_time, status='used').count()
     
     total_subnets = Subnet.objects.count()
     pending_requests = IPRequest.objects.filter(status='pending').count()
