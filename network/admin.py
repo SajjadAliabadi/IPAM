@@ -359,7 +359,7 @@ class IPAddressAdmin(admin.ModelAdmin):
         perform_ip_discovery(queryset)
         self.message_user(request, "Scan completed for selected IPs.", level='SUCCESS')
 
-    @admin.display(description='status_badge', ordering='status_badge')
+    @admin.display(description='Status', ordering='status')
     def status_badge(self, obj):
         from django.utils.safestring import mark_safe
         if obj.status == 'available':
