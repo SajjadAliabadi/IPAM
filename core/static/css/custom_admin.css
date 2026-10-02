@@ -792,20 +792,6 @@ body.model-ipaddress.change-list .app-content-header {
 
 
 
-/* Ensure absolute zero top margin for the entire application to prevent top white gaps */
-html, body, .app-wrapper, .app-header {
-    margin-top: 0 !important;
-    top: 0 !important;
-}
-
-
-/* FORCE THE NAVBAR TO STICK TO THE TOP TO PREVENT ANY SCROLL GAPS */
-.app-header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 1039 !important;
-}
-
 /* Fix django-import-export background icon overlap in Jazzmin */
 .import_link, .export_link {
     background-image: none !important;
@@ -822,27 +808,4 @@ html, body, .app-wrapper, .app-header {
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     margin-right: 6px;
-}
-
-/* Absolute forceful fix for app-header top gap */
-body, html {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-}
-.app-wrapper {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-}
-nav.app-header, #jazzy-navbar {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    top: 0 !important;
-    position: sticky !important;
-    transform: translateY(0) !important;
-    border-top: none !important;
-}
-
-/* Disable elastic overscroll bounce to prevent white gaps at the top when scrolling up */
-html, body {
-    overscroll-behavior-y: none !important;
 }
