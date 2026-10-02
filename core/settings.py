@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 
 JAZZMIN_UI_TWEAKS = {
     "theme": "default",
-    "navbar_fixed": True,
+    "navbar_fixed": False,
     "layout_fixed": True,
     "sidebar_fixed": True,
 }

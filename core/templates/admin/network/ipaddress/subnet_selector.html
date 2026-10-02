@@ -101,11 +101,11 @@
 <div style="margin-bottom: 30px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
     <form method="GET" action="" style="margin: 0; display: flex; align-items: center; gap: 15px;">
         <div style="flex-grow: 1; position: relative;">
-            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem;"></i>
-            <input type="text" name="q" placeholder="Global IP Search... (e.g. 192.168.1.10, hostname, or mac address)" style="width: 100%; padding: 14px 20px 14px 45px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 1.1rem; color: #334155; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'; this.style.outline='none';" onblur="this.style.borderColor='#e2e8f0';">
+            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem; z-index: 10;"></i>
+            <input type="text" name="q" placeholder="Global IP Search... (e.g. 192.168.1.10, hostname, or mac address)" style="width: 100%; padding: 14px 20px 14px 45px !important; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 1.1rem; color: #334155; transition: border-color 0.2s; position: relative; z-index: 5;" onfocus="this.style.borderColor='#3b82f6'; this.style.outline='none';" onblur="this.style.borderColor='#e2e8f0';">
         </div>
         <button type="submit" class="btn btn-primary" style="padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; background: #3b82f6; border: none; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);">
-            Search IPs
+            Search
         </button>
     </form>
 </div>
