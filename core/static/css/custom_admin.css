@@ -809,3 +809,30 @@ body.model-ipaddress.change-list .app-content-header {
     font-weight: 900;
     margin-right: 6px;
 }
+
+/* Fix scrolling layout by forcing AdminLTE CSS Grid to stay within 100vh */
+html, body {
+    height: 100vh !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.app-wrapper {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+}
+
+.app-main {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    /* In a flex/grid layout, this allows it to scroll internally instead of expanding the page */
+    min-height: 0 !important; 
+}
+
+/* Ensure sidebar also scrolls internally */
+.app-sidebar {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
