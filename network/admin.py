@@ -1005,7 +1005,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     form = SystemSettingsForm
     def get_fieldsets(self, request, obj=None):
         from django.utils import timezone
-        current_time = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+        current_time = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S')
         from django.utils.safestring import mark_safe
         return (
             ('Server Configuration', {
