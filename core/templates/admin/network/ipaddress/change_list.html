@@ -1,0 +1,9 @@
+﻿{% extends "admin/import_export/change_list_import_export.html" %}
+
+{% block content %}
+    {{ block.super }}
+    
+    {% if ip_grid_html %}
+        {{ ip_grid_html|safe }}
+    {% endif %}
+{% endblock %}
