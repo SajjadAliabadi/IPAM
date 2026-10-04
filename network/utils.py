@@ -263,11 +263,7 @@ def perform_ip_discovery(ips_queryset):
             if old_status == 'used':
                 ip_obj.status = 'offline'
                 ip_obj.last_offline_at = timezone.now()
-                if settings.alert_on_critical_offline and ip_obj.discovery_reason and 'Manually' in ip_obj.discovery_reason:
-                    try:
-                        from .alerts import send_telegram_alert
-                        send_telegram_alert(f"Critical IP Offline: Manually assigned IP {ip_obj.ip_address} ({ip_obj.hostname}) has gone offline.")
-                    except: pass
+
                 prev_reason = ip_obj.discovery_reason
                 method_str = prev_reason.replace('Detected via ', '') if prev_reason else 'Unknown Method'
                 time_str = timezone.now().strftime('%Y-%m-%d %H:%M')

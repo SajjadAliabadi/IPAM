@@ -174,7 +174,10 @@ class IPAddress(models.Model):
                         send_alert(f"🟢 *IP In Use*\nThe available IP {self.ip_address} is now marked as In Use.")
                 elif self.status == 'offline':
                     if settings.alert_on_critical_offline:
-                        send_alert(f"🔴 *IP Offline Alert*\nThe IP {self.ip_address} has gone offline.")
+                        # Only alert if it was a manually assigned IP to avoid noise
+                        if self.discovery_reason and 'Manually' in self.discovery_reason:
+                            hostname_str = f" ({self.hostname})" if self.hostname else ""
+                            send_alert(f"🔴 *Critical IP Offline Alert*\nThe manually assigned IP {self.ip_address}{hostname_str} has gone offline!")
             except:
                 pass
 
