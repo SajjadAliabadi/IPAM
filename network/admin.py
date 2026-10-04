@@ -518,6 +518,10 @@ class IPAddressAdmin(admin.ModelAdmin):
                 messages.success(request, f"{ip.ip_address} is now ONLINE!")
             else:
                 messages.warning(request, f"{ip.ip_address} is still offline.")
+                
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return HttpResponseRedirect(referer)
         return HttpResponseRedirect(reverse('admin:network_ipaddress_changelist'))
         
     def clear_ip_view(self, request, ip_id):
