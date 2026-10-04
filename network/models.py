@@ -83,6 +83,13 @@ class SystemSettings(models.Model):
     telegram_chat_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="Telegram Chat/Group ID")
     alert_on_subnet_full = models.BooleanField(default=True, verbose_name="Alert when subnet is >90% full")
     alert_on_critical_offline = models.BooleanField(default=True, verbose_name="Alert when manually assigned IP goes offline")
+    alert_on_new_ip_request = models.BooleanField(default=True, verbose_name="Alert on New IP Request")
+    alert_on_ip_in_use = models.BooleanField(default=False, verbose_name="Alert when Available IP becomes In Use")
+    alert_on_new_ip_discovered = models.BooleanField(default=True, verbose_name="Alert on New Unmanaged IP Discovered")
+    alert_on_disk_full = models.BooleanField(default=True, verbose_name="Alert on High Disk Usage (>90%)")
+    alert_on_cpu_high = models.BooleanField(default=True, verbose_name="Alert on High CPU Usage (>90%)")
+    alert_on_memory_high = models.BooleanField(default=True, verbose_name="Alert on High Memory Usage (>90%)")
+    alert_on_failed_login = models.BooleanField(default=True, verbose_name="Alert on Failed Login Attempts")
     
     # Mattermost
     mattermost_webhook_url = models.URLField(max_length=500, null=True, blank=True, verbose_name="Mattermost Webhook URL", help_text="Incoming Webhook URL from Mattermost")
@@ -131,6 +138,15 @@ class IPAddress(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
 
     def save(self, *args, **kwargs):
+        is_new = not self.pk
+        old_status = None
+        if not is_new:
+            try:
+                old_obj = IPAddress.objects.get(pk=self.pk)
+                old_status = old_obj.status
+            except:
+                pass
+                
         if self.ip_address:
             try:
                 parts = str(self.ip_address).split('.')
@@ -139,6 +155,28 @@ class IPAddress(models.Model):
             except Exception:
                 pass
         super().save(*args, **kwargs)
+        
+        if is_new and self.status == 'used':
+            try:
+                settings = SystemSettings.load()
+                if settings.alert_on_new_ip_discovered:
+                    from network.alerts import send_alert
+                    send_alert(f"✨ *New IP Discovered*\nA previously unknown IP {self.ip_address} was discovered on the network.")
+            except:
+                pass
+                
+        if not is_new and old_status and old_status != self.status:
+            try:
+                settings = SystemSettings.load()
+                from network.alerts import send_alert
+                if old_status == 'available' and self.status == 'used':
+                    if settings.alert_on_ip_in_use:
+                        send_alert(f"🟢 *IP In Use*\nThe available IP {self.ip_address} is now marked as In Use.")
+                elif self.status == 'offline':
+                    if settings.alert_on_critical_offline:
+                        send_alert(f"🔴 *IP Offline Alert*\nThe IP {self.ip_address} has gone offline.")
+            except:
+                pass
 
     def __str__(self):
         return f"{self.ip_address} - {self.status}"

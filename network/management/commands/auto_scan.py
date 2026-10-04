@@ -34,6 +34,18 @@ class Command(BaseCommand):
                 net_bytes_recv=net_io.bytes_recv
             )
             
+            # Alerts
+            from network.models import SystemSettings
+            from network.alerts import send_alert
+            settings = SystemSettings.load()
+            
+            if settings.alert_on_cpu_high and cpu > 90:
+                send_alert(f"⚠️ *High CPU Alert*\nCPU Usage is at {cpu}% on the IPAM Server!")
+            if settings.alert_on_memory_high and mem > 90:
+                send_alert(f"⚠️ *High Memory Alert*\nMemory Usage is at {mem}% on the IPAM Server!")
+            if settings.alert_on_disk_full and disk_percent > 90:
+                send_alert(f"⚠️ *Disk Space Alert*\nDisk Usage is at {disk_percent}% on the IPAM Server!")
+            
             # Prune old metrics (older than 7 days)
             ServerMetric.objects.filter(timestamp__lt=timezone.now() - timedelta(days=7)).delete()
         except Exception as e:

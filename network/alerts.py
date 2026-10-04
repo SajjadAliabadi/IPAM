@@ -39,3 +39,26 @@ def send_alert(message):
 def send_telegram_alert(message):
     # Keep backward compatibility if it's imported elsewhere
     send_alert(message)
+
+# Hook up login failed signal
+from django.contrib.auth.signals import user_login_failed
+from django.dispatch import receiver
+from django.core.cache import cache
+
+@receiver(user_login_failed)
+def login_failed_alert(sender, credentials, request, **kwargs):
+    settings = SystemSettings.load()
+    if not settings.alert_on_failed_login:
+        return
+    username = credentials.get('username', 'Unknown')
+    ip = request.META.get('REMOTE_ADDR', 'Unknown')
+    if request.META.get('HTTP_X_FORWARDED_FOR'):
+        ip = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[0]
+        
+    cache_key = f"failed_login_{username}_{ip}"
+    count = cache.get(cache_key, 0) + 1
+    cache.set(cache_key, count, 300) # Keep count for 5 minutes
+    
+    if count >= 3:
+        send_alert(f"🚨 *Security Alert*\nMultiple failed login attempts ({count}) for user {username} from IP {ip}.")
+        cache.set(cache_key, 0, 300) # Reset after alerting
