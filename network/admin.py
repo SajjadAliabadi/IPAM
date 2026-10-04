@@ -181,9 +181,10 @@ class SubnetAdmin(ImportExportActionModelAdmin):
         js = (
             'js/nouislider.min.js',
             'js/subnet_auto_assign.js',
+            'js/modern_checkboxes.js',
         )
         css = {
-            'all': ('css/nouislider.min.css',)
+            'all': ('css/nouislider.min.css', 'css/modern_checkboxes.css')
         }
 
     @admin.action(description='Run Discovery Scan on Selected Subnets')
