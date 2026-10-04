@@ -146,3 +146,47 @@ def server_metric_history_api(request, metric_type):
                 val = 0
             data.append([timestamp_ms, val])
         return JsonResponse({'data': data})
+def ip_calculator_view(request):
+    from django.contrib import admin
+    context = admin.site.each_context(request)
+    context['title'] = "IP Calculator"
+    
+    ip_input = request.GET.get('ip', '')
+    context['ip_input'] = ip_input
+    
+    if ip_input:
+        import ipaddress
+        try:
+            if '/' not in ip_input:
+                ip_input += '/32'
+            interface = ipaddress.ip_interface(ip_input)
+            net = interface.network
+            
+            subnet_class = "Unknown"
+            if net.version == 4:
+                first_octet = int(str(net.network_address).split('.')[0])
+                if first_octet < 128: subnet_class = "A"
+                elif first_octet < 192: subnet_class = "B"
+                elif first_octet < 224: subnet_class = "C"
+                elif first_octet < 240: subnet_class = "D"
+                else: subnet_class = "E"
+                if net.is_private:
+                    subnet_class = "Private " + subnet_class
+            
+            context['calc_result'] = {
+                'type': f'IPv{net.version}',
+                'ip_address': str(interface.ip),
+                'network': str(net.network_address),
+                'broadcast': str(net.broadcast_address) if net.version == 4 else 'N/A',
+                'bitmask': str(net.prefixlen),
+                'netmask': str(net.netmask),
+                'wildcard': str(net.hostmask),
+                'min_host': str(net.network_address + 1) if net.num_addresses > 2 else str(net.network_address),
+                'max_host': str(net.broadcast_address - 1) if net.version == 4 and net.num_addresses > 2 else str(net.network_address + 1),
+                'num_hosts': max(0, net.num_addresses - 2) if net.version == 4 and net.num_addresses > 2 else net.num_addresses,
+                'subnet_class': subnet_class
+            }
+        except Exception as e:
+            context['calc_error'] = "Invalid IP address or CIDR format."
+
+    return render(request, 'admin/network/calculator.html', context)

@@ -62,6 +62,13 @@ JAZZMIN_SETTINGS = {
     "custom_css": "css/custom_admin.css",
     "custom_js": "js/custom_ui_overrides.js",
         "changeform_format": "horizontal_tabs",
+        "custom_links": {
+        "network": [{
+            "name": "IP Calculator", 
+            "url": "ip_calculator", 
+            "icon": "fas fa-calculator",
+        }]
+    },
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",

@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static jazzmin %}
+{% block content %}
+<style>
+    .calc-container { background: #f8fafc; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 30px; border: 1px solid #e2e8f0; }
+    .calc-header { margin-bottom: 20px; font-weight: 600; color: #1e293b; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    .calc-form { display: flex; gap: 15px; align-items: center; margin-bottom: 25px; }
+    .calc-form input { padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; width: 300px; outline: none; transition: border-color 0.2s; }
+    .calc-form input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .calc-btn { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s; }
+    .calc-btn:hover { background: #2563eb; }
+    .calc-btn-reset { background: #64748b; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-size: 15px; transition: background 0.2s; }
+    .calc-btn-reset:hover { background: #475569; }
+    
+    .result-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .result-table th, .result-table td { padding: 12px 20px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    .result-table th { background: #f8fafc; color: #64748b; font-weight: 500; width: 30%; }
+    .result-table td { color: #0f172a; font-weight: 500; font-family: monospace; font-size: 14px; }
+    .result-table tr:last-child td, .result-table tr:last-child th { border-bottom: none; }
+</style>
+
+<div class="calc-container">
+    <div class="calc-header">IP & Subnet Calculator</div>
+    
+    <form class="calc-form" method="GET">
+        <label style="color: #475569; font-weight: 500;">IP Address / Mask</label>
+        <input type="text" name="ip" value="{{ ip_input }}" placeholder="e.g. 192.168.1.1/24" required>
+        <button type="submit" class="calc-btn"><i class="fas fa-calculator"></i> Calculate</button>
+        <a href="{% url 'ip_calculator' %}" class="calc-btn-reset">Reset</a>
+    </form>
+    
+    {% if calc_error %}
+        <div class="alert alert-danger">{{ calc_error }}</div>
+    {% endif %}
+
+    {% if calc_result %}
+        <div style="font-weight: 500; margin-bottom: 15px; color: #334155;">Subnetting details for {{ ip_input }}:</div>
+        <table class="result-table">
+            <tr><th>Type</th><td>{{ calc_result.type }}</td></tr>
+            <tr><th>IP address</th><td>{{ calc_result.ip_address }}</td></tr>
+            <tr><th>Network</th><td>{{ calc_result.network }}</td></tr>
+            <tr><th>Broadcast</th><td>{{ calc_result.broadcast }}</td></tr>
+            <tr><th>Subnet bitmask</th><td>{{ calc_result.bitmask }}</td></tr>
+            <tr><th>Subnet netmask</th><td>{{ calc_result.netmask }}</td></tr>
+            <tr><th>Subnet wildcard</th><td>{{ calc_result.wildcard }}</td></tr>
+            <tr><th>Min host IP</th><td>{{ calc_result.min_host }}</td></tr>
+            <tr><th>Max host IP</th><td>{{ calc_result.max_host }}</td></tr>
+            <tr><th>Number of hosts</th><td>{{ calc_result.num_hosts }}</td></tr>
+            <tr><th>Subnet Class</th><td>{{ calc_result.subnet_class }}</td></tr>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

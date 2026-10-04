@@ -1,16 +1,17 @@
 ﻿/* Modern Filter Horizontal (Dual Listbox) for Django Admin */
 .selector {
     display: flex !important;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 15px;
     width: 100%;
     margin-top: 15px;
 }
 
 .selector .selector-available, 
 .selector .selector-chosen {
-    width: 45% !important;
+    flex: 1 !important;
+    width: auto !important;
     float: none !important;
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -38,8 +39,8 @@
     border-bottom: 1px solid #f1f5f9 !important;
 }
 
-.selector .selector-filter label {
-    display: none; /* Hide the magnifying glass icon if ugly, or style it */
+.selector .selector-filter label, .selector .selector-filter img {
+    display: none !important;
 }
 
 .selector .selector-filter input {
@@ -50,6 +51,7 @@
     font-size: 14px !important;
     outline: none !important;
     transition: border-color 0.2s;
+    margin: 0 !important;
 }
 
 .selector .selector-filter input:focus {
@@ -87,7 +89,8 @@
 
 /* Middle buttons */
 .selector .selector-chooser {
-    width: 10% !important;
+    width: 50px !important;
+    min-width: 50px !important;
     float: none !important;
     display: flex;
     flex-direction: column;
@@ -95,16 +98,20 @@
     align-items: center;
     gap: 15px;
     background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .selector .selector-chooser li {
     margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
 }
 
 .selector-add, 
 .selector-remove {
     background: #3b82f6 !important;
-    color: white !important;
+    color: transparent !important; /* Hide text */
     border-radius: 50% !important;
     width: 40px !important;
     height: 40px !important;
@@ -112,18 +119,30 @@
     align-items: center !important;
     justify-content: center !important;
     text-indent: 0 !important;
-    font-size: 18px !important;
     line-height: 1 !important;
     text-decoration: none !important;
     transition: transform 0.2s, box-shadow 0.2s !important;
     box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3) !important;
+    position: relative;
+    overflow: hidden;
 }
+
 .selector-add::after {
     content: "→" !important;
+    position: absolute;
+    color: white;
+    font-size: 18px !important;
+    font-weight: bold;
 }
+
 .selector-remove::after {
     content: "←" !important;
+    position: absolute;
+    color: white;
+    font-size: 18px !important;
+    font-weight: bold;
 }
+
 .selector-add:hover, 
 .selector-remove:hover {
     transform: translateY(-2px) !important;
@@ -142,6 +161,7 @@ a.selector-clearall {
     text-decoration: none !important;
     border-top: 1px solid #e2e8f0;
     transition: background-color 0.2s;
+    font-size: 13px !important;
 }
 a.selector-chooseall:hover, 
 a.selector-clearall:hover {
