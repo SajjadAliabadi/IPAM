@@ -1,9 +1,15 @@
-﻿function openStatusModal(ipId, ipAddress, currentStatus, hostname, mac, os, reason) {
+function openStatusModal(ipId, ipAddress, currentStatus, hostname, mac, os, reason) {
     // Remove existing modal if any
     const existing = document.getElementById('ipStatusModal');
     if (existing) {
         existing.remove();
     }
+    
+    // Format nulls
+    hostname = (hostname === 'None' || !hostname) ? '' : hostname;
+    mac = (mac === 'None' || !mac) ? '' : mac;
+    os = (os === 'None' || !os) ? '' : os;
+    reason = (reason === 'None' || !reason) ? '' : reason;
 
     const modalHtml = 
     <div class="modal fade" id="ipStatusModal" tabindex="-1" role="dialog" aria-hidden="true">
