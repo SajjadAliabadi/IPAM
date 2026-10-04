@@ -82,6 +82,15 @@ class SystemSettings(models.Model):
     telegram_chat_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="Telegram Chat/Group ID")
     alert_on_subnet_full = models.BooleanField(default=True, verbose_name="Alert when subnet is >90% full")
     alert_on_critical_offline = models.BooleanField(default=True, verbose_name="Alert when manually assigned IP goes offline")
+    
+    # Mattermost
+    mattermost_webhook_url = models.URLField(max_length=500, null=True, blank=True, verbose_name="Mattermost Webhook URL", help_text="Incoming Webhook URL from Mattermost")
+    alert_mattermost = models.BooleanField(default=False, verbose_name="Enable Mattermost Alerts")
+    
+    # SMS Webhook
+    sms_webhook_url = models.URLField(max_length=500, null=True, blank=True, verbose_name="SMS Gateway Webhook URL", help_text="URL to send SMS HTTP POST requests to")
+    sms_payload_template = models.TextField(null=True, blank=True, verbose_name="SMS Payload (JSON Template)", help_text='Use {message} as placeholder. Example: {"receptor": "0912...", "template": "alert", "token": "{message}"}')
+    alert_sms = models.BooleanField(default=False, verbose_name="Enable SMS Alerts")
 
     class Meta:
         verbose_name = "System Setting"
