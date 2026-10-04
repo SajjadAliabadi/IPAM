@@ -36,3 +36,30 @@
         toggleTimeFields(); // Init
     }
 });
+document.addEventListener('DOMContentLoaded', function() {
+    const timeSpan = document.getElementById('live-system-time');
+    if (timeSpan) {
+        let textTime = timeSpan.innerText.trim();
+        
+        function incrementTimeStr(timeStr) {
+            let d = new Date(timeStr.replace(/-/g, '/')); 
+            if (isNaN(d.getTime())) return timeStr;
+            
+            d.setSeconds(d.getSeconds() + 1);
+            
+            let yyyy = d.getFullYear();
+            let mm = String(d.getMonth() + 1).padStart(2, '0');
+            let dd = String(d.getDate()).padStart(2, '0');
+            let hh = String(d.getHours()).padStart(2, '0');
+            let min = String(d.getMinutes()).padStart(2, '0');
+            let ss = String(d.getSeconds()).padStart(2, '0');
+            
+            return yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + min + ':' + ss;
+        }
+
+        setInterval(() => {
+            textTime = incrementTimeStr(textTime);
+            timeSpan.innerText = textTime;
+        }, 1000);
+    }
+});
