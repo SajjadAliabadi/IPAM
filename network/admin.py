@@ -1009,12 +1009,15 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         from django.utils.safestring import mark_safe
         return (
             ('Server Configuration', {
-                'fields': ('server_port', 'enable_ssl', 'ssl_cert_path', 'ssl_key_path'),
-                'description': 'WARNING: Changing these settings takes effect on the next server restart.'
+                'fields': (
+                    ('server_port', 'enable_ssl'),
+                    ('ssl_cert_path', 'ssl_key_path'),
+                ),
+                'description': mark_safe('<div style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border: 1px solid #fecdd3; border-left: 4px solid #e11d48; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(225, 29, 72, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-server" style="color: #e11d48; font-size: 24px;"></i></div><div><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Core Server & SSL Setup</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5;">Manage the core port and SSL certificates for the background service. <strong style="color:#e11d48;">Note:</strong> Changes here require a manual restart of the backend service to take effect.</p></div></div>')
             }),
             ('UI & Theming', {
-                'fields': ('theme', 'custom_logo'),
-                'description': 'Choose a responsive UI theme and set a custom logo. Changes apply immediately.'
+                'fields': (('theme', 'custom_logo'),),
+                'description': mark_safe('<div style="background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%); border: 1px solid #fbcfe8; border-left: 4px solid #c026d3; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(192, 38, 211, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-paint-roller" style="color: #c026d3; font-size: 22px;"></i></div><div><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Interface & Branding</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5;">Customize the visual appearance of the IPAM dashboard. Select from multiple built-in dark and light themes, and upload your own corporate logo. Changes apply instantly.</p></div></div>')
             }),
             ('Alerting (Telegram)', {
                 'fields': ('telegram_bot_token', 'telegram_chat_id', 'alert_on_subnet_full', 'alert_on_critical_offline'),
@@ -1029,12 +1032,20 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 'description': mark_safe('<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #22c55e; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(34, 197, 94, 0.05); display: flex; align-items: center; gap: 15px;"><div style="background: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><i class="fas fa-sms" style="color: #22c55e; font-size: 22px;"></i></div><div><h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 3px;">SMS Provider (Webhook)</h4><p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">Connect to Kavenegar, FarazSMS, or any generic HTTP SMS gateway. Use <code>{message}</code> in your JSON payload.</p></div></div>')
             }),
             ('Automation & Provisioning', {
-                'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours', 'new_ip_duration_hours', 'clear_all_new_ips', 'monitoring_retention_days', 'clear_monitoring_logs'),
-                'description': 'Configure automatic IP allocation, recycling, and reservation settings.'
+                'fields': (
+                    ('auto_assign_ips', 'enable_reservation'),
+                    ('reservation_timeout_hours', 'offline_timeout_hours'),
+                    ('new_ip_duration_hours', 'monitoring_retention_days'),
+                    ('clear_all_new_ips', 'clear_monitoring_logs'),
+                ),
+                'description': mark_safe('<div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-left: 4px solid #6366f1; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-robot" style="color: #6366f1; font-size: 24px;"></i></div><div><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Automation Engine & Lifecycle Rules</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5;">Configure how the system automatically provisions new IPs, recycles offline servers, and manages data retention. These rules run continuously in the background to keep your network state perfectly accurate.</p></div></div>')
             }),
             ('System Time', {
-                'fields': ('timezone', 'time_sync_mode', 'manual_time', 'ntp_server'),
-                'description': mark_safe(f'Configure time synchronization and timezone.<br><br><b>Current System Time:</b> {current_time}')
+                'fields': (
+                    ('timezone', 'time_sync_mode'),
+                    ('manual_time', 'ntp_server'),
+                ),
+                'description': mark_safe(f'<div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; border-left: 4px solid #d97706; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(217, 119, 6, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-clock" style="color: #d97706; font-size: 24px;"></i></div><div style="flex-grow: 1;"><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Time Synchronization</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5; margin-bottom: 12px;">Ensure all your IP discovery logs and audit trails have the correct timestamps. You can sync with the host OS, specify an NTP server, or enter time manually.</p><div style="background: white; border: 1px dashed #fcd34d; padding: 8px 15px; border-radius: 8px; display: inline-block;"><span style="color: #92400e; font-weight: 600; font-size: 13px;"><i class="fas fa-stopwatch" style="margin-right: 6px;"></i>Live System Time:</span> <span style="font-family: monospace; font-size: 14px; font-weight: 700; color: #1e293b; margin-left: 8px;">{current_time}</span></div></div></div>')
             }),
         )
 
