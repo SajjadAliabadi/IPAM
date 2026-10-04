@@ -1,0 +1,107 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static jazzmin %}
+{% get_jazzmin_settings request as jazzmin_settings %}
+
+{% block content %}
+<div class="card" style="border-radius: 15px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: none; overflow: hidden; padding: 30px; background: white;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-family: 'Inter', sans-serif; font-weight: 700; color: #1e293b; text-transform: capitalize;">{{ metric_type }} Usage History (Last 7 Days)</h2>
+        <a href="{% url 'admin:network_auditlog_changelist' %}" class="btn btn-outline-secondary" style="border-radius: 8px;"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+    
+    <div id="metric-chart" style="min-height: 400px; width: 100%;"></div>
+    
+    <div style="margin-top: 20px; font-size: 13px; color: #64748b; text-align: center;">
+        <i class="fas fa-info-circle"></i> You can drag to zoom into a specific time range. Use the toolbar in the top right to pan, zoom out, or download the graph.
+    </div>
+</div>
+
+<script src="{% static 'js/apexcharts.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch("{% url 'server_metric_history_api' metric_type %}")
+        .then(response => response.json())
+        .then(data => {
+            const chartData = data.data;
+            let yTitle = 'Percentage (%)';
+            let maxVal = 100;
+            
+            if ('{{ metric_type }}' === 'network') {
+                yTitle = 'Bytes (Sent + Recv)';
+                maxVal = undefined;
+            }
+            
+            var options = {
+                series: [{
+                    name: '{{ metric_type|title }}',
+                    data: chartData
+                }],
+                chart: {
+                    type: 'area',
+                    stacked: false,
+                    height: 450,
+                    fontFamily: 'Inter, sans-serif',
+                    zoom: {
+                        type: 'x',
+                        enabled: true,
+                        autoScaleYaxis: true
+                    },
+                    toolbar: {
+                        autoSelected: 'zoom',
+                        tools: {
+                            download: true,
+                            selection: true,
+                            zoom: true,
+                            zoomin: true,
+                            zoomout: true,
+                            pan: true,
+                            reset: true
+                        }
+                    }
+                },
+                colors: ['#3b82f6'],
+                dataLabels: {
+                    enabled: false
+                },
+                markers: {
+                    size: 0,
+                    hover: {
+                        size: 5
+                    }
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        inverseColors: false,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.05,
+                        stops: [20, 100]
+                    },
+                },
+                yaxis: {
+                    title: {
+                        text: yTitle
+                    },
+                    max: maxVal
+                },
+                xaxis: {
+                    type: 'datetime',
+                    labels: {
+                        datetimeUTC: false
+                    }
+                },
+                tooltip: {
+                    shared: false,
+                    x: {
+                        format: 'dd MMM yyyy HH:mm'
+                    }
+                }
+            };
+
+            var chart = new ApexCharts(document.querySelector("#metric-chart"), options);
+            chart.render();
+        });
+});
+</script>
+{% endblock %}

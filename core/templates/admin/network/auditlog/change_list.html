@@ -146,7 +146,7 @@
 
 <div>
     <div class="server-tabs">
-        <button class="server-tab active" onclick="switchTab('tab-stats', this)">Server Resources (Live) - شیک و مدرن</button>
+        <button class="server-tab active" onclick="switchTab('tab-stats', this)">Server Resources (Live)</button>
         <button class="server-tab" onclick="switchTab('tab-logs', this)">Audit Logs</button>
     </div>
 
@@ -309,3 +309,24 @@
     setInterval(fetchStats, 2000);
 </script>
 {% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.stat-card');
+    if (cards.length >= 2) {
+        cards[0].style.cursor = 'pointer';
+        cards[0].onclick = function() { window.location.href = "{% url 'server_metric_history' 'cpu' %}"; };
+        
+        cards[1].style.cursor = 'pointer';
+        cards[1].onclick = function() { window.location.href = "{% url 'server_metric_history' 'memory' %}"; };
+    }
+    
+    // The big card for volumes and network
+    const bigCards = document.querySelectorAll('.stat-card-wide');
+    if (bigCards.length >= 1) {
+        // Just make the whole disk section clickable to the 'disk' metric graph
+        bigCards[0].style.cursor = 'pointer';
+        bigCards[0].onclick = function() { window.location.href = "{% url 'server_metric_history' 'disk' %}"; };
+    }
+});
+</script>

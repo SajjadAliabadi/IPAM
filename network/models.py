@@ -239,3 +239,17 @@ def subnet_post_save(sender, instance, created, **kwargs):
 
 
 
+
+
+class ServerMetric(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    cpu_percent = models.FloatField()
+    memory_percent = models.FloatField()
+    disk_percent = models.FloatField()
+    net_bytes_sent = models.BigIntegerField(default=0)
+    net_bytes_recv = models.BigIntegerField(default=0)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = "Server Metric"
+        verbose_name_plural = "Server Metrics"

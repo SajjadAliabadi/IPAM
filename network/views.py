@@ -88,3 +88,39 @@ def server_stats_api(request):
         'disk': disks,
         'network': net
     })
+
+
+from django.http import JsonResponse
+from network.models import ServerMetric
+from django.utils import timezone
+from datetime import timedelta
+
+def server_metric_history(request, metric_type):
+    return render(request, 'admin/network/auditlog/metric_history.html', {'metric_type': metric_type})
+    
+def server_metric_history_api(request, metric_type):
+    # Fetch 7 days of data
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=7)
+    
+    metrics = ServerMetric.objects.filter(timestamp__range=(start_date, end_date)).order_by('timestamp')
+    
+    data = []
+    for m in metrics:
+        timestamp_ms = int(m.timestamp.timestamp() * 1000)
+        if metric_type == 'cpu':
+            val = m.cpu_percent
+        elif metric_type == 'memory':
+            val = m.memory_percent
+        elif metric_type == 'disk':
+            val = m.disk_percent
+        elif metric_type == 'network':
+            # It's a bit complex to show raw bytes in a time series because it goes up continuously.
+            # But let's just send the raw bytes, or perhaps calculate the rate?
+            # For simplicity, we just send bytes_sent + bytes_recv and let frontend handle it.
+            val = m.net_bytes_sent + m.net_bytes_recv
+        else:
+            val = 0
+        data.append([timestamp_ms, val])
+        
+    return JsonResponse({'data': data})
