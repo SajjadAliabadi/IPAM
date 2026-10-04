@@ -11,48 +11,48 @@ function openStatusModal(ipId, ipAddress, currentStatus, hostname, mac, os, reas
     os = (os === 'None' || !os) ? '' : os;
     reason = (reason === 'None' || !reason) ? '' : reason;
 
-    const modalHtml = 
+    const modalHtml = `
     <div class="modal fade" id="ipStatusModal" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
           <div class="modal-header" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid #e2e8f0; border-radius: 16px 16px 0 0; padding: 20px 25px;">
-            <h5 class="modal-title" style="font-weight: 700; color: #1e293b;"><i class="fas fa-edit" style="color: #3b82f6; margin-right: 8px;"></i> Change Details for </h5>
+            <h5 class="modal-title" style="font-weight: 700; color: #1e293b;"><i class="fas fa-edit" style="color: #3b82f6; margin-right: 8px;"></i> Change Details for ${ipAddress}</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="opacity: 0.5;">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <form method="POST" action="/admin/network/ipaddress//change-status-modal/">
+          <form method="POST" action="/admin/network/ipaddress/${ipId}/change-status-modal/">
             <div class="modal-body" style="padding: 25px;">
-              <input type="hidden" name="csrfmiddlewaretoken" value="">
+              <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
               
               <div class="form-group mb-4">
                 <label style="font-weight: 600; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">New Status</label>
                 <select name="status" class="form-control" style="border-radius: 8px; border-color: #cbd5e1; box-shadow: none;">
-                  <option value="available" >🟢 Available</option>
-                  <option value="reserved" >🟠 Reserved</option>
-                  <option value="used" >🔴 In Use</option>
+                  <option value="available" ${currentStatus === 'available' ? 'selected' : ''}>Available</option>
+                  <option value="reserved" ${currentStatus === 'reserved' ? 'selected' : ''}>Reserved</option>
+                  <option value="used" ${currentStatus === 'used' ? 'selected' : ''}>In Use</option>
                 </select>
               </div>
 
               <div class="form-group mb-3">
                 <label style="font-weight: 600; color: #475569; font-size: 13px;">Hostname</label>
-                <input type="text" name="hostname" class="form-control" value="" placeholder="e.g. SRV-WEB-01" style="border-radius: 8px; border-color: #cbd5e1;">
+                <input type="text" name="hostname" class="form-control" value="${hostname}" placeholder="e.g. SRV-WEB-01" style="border-radius: 8px; border-color: #cbd5e1;">
               </div>
 
               <div class="row">
                 <div class="col-md-6 form-group mb-3">
                   <label style="font-weight: 600; color: #475569; font-size: 13px;">MAC Address</label>
-                  <input type="text" name="mac_address" class="form-control" value="" placeholder="AA:BB:CC:DD:EE:FF" style="border-radius: 8px; border-color: #cbd5e1;">
+                  <input type="text" name="mac_address" class="form-control" value="${mac}" placeholder="AA:BB:CC:DD:EE:FF" style="border-radius: 8px; border-color: #cbd5e1;">
                 </div>
                 <div class="col-md-6 form-group mb-3">
                   <label style="font-weight: 600; color: #475569; font-size: 13px;">Operating System</label>
-                  <input type="text" name="os_name" class="form-control" value="" placeholder="e.g. Windows Server" style="border-radius: 8px; border-color: #cbd5e1;">
+                  <input type="text" name="os_name" class="form-control" value="${os}" placeholder="e.g. Windows Server" style="border-radius: 8px; border-color: #cbd5e1;">
                 </div>
               </div>
 
               <div class="form-group mb-0">
                 <label style="font-weight: 600; color: #475569; font-size: 13px;">Discovery Reason / Description</label>
-                <input type="text" name="discovery_reason" class="form-control" value="" placeholder="Why is this IP reserved/used?" style="border-radius: 8px; border-color: #cbd5e1;">
+                <input type="text" name="discovery_reason" class="form-control" value="${reason}" placeholder="Why is this IP reserved/used?" style="border-radius: 8px; border-color: #cbd5e1;">
               </div>
 
             </div>
@@ -64,7 +64,7 @@ function openStatusModal(ipId, ipAddress, currentStatus, hostname, mac, os, reas
         </div>
       </div>
     </div>
-    ;
+    `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     

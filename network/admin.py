@@ -574,7 +574,9 @@ class IPAddressAdmin(admin.ModelAdmin):
         label = dict(obj.STATUS_CHOICES).get(obj.status, obj.status)
         
         def esc(s):
-            return str(s).replace("'", "\\'") if s else ""
+            if not s:
+                return ""
+            return str(s).replace("'", "\\'").replace('"', '&quot;').replace("\n", " ").replace("\r", " ")
             
         html = f'''
         <div style="display: flex; align-items: center; gap: 15px;">
