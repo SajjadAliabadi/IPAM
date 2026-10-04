@@ -1,14 +1,14 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from network.models import Subnet, AuditLog
+from network.models import Subnet, AuditLog, ServerMetric
 from network.utils import perform_discovery
+import psutil
+from datetime import timedelta
 
 class Command(BaseCommand):
     help = 'Automatically scans subnets based on their interval'
 
     def handle(self, *args, **kwargs):
-                import psutil
-        from network.models import ServerMetric
         try:
             # Gather metrics
             cpu = psutil.cpu_percent(interval=1)
@@ -35,7 +35,6 @@ class Command(BaseCommand):
             )
             
             # Prune old metrics (older than 7 days)
-            from datetime import timedelta
             ServerMetric.objects.filter(timestamp__lt=timezone.now() - timedelta(days=7)).delete()
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"Could not collect server metrics: {e}"))
@@ -53,11 +52,9 @@ class Command(BaseCommand):
 
         if subnets_to_scan:
             self.stdout.write(f"Found {len(subnets_to_scan)} subnets to scan.")
-            # We can't pass the raw list to perform_discovery, it expects a queryset.
             qs = Subnet.objects.filter(id__in=[s.id for s in subnets_to_scan])
             perform_discovery(qs)
             
-            # Update last_scanned
             for s in subnets_to_scan:
                 s.last_scanned = timezone.now()
                 s.save()
