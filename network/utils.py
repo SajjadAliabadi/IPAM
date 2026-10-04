@@ -103,6 +103,15 @@ def perform_discovery(subnets_queryset):
                 ip_address=ip_str,
                 defaults={'subnet': subnet, 'status': final_status, 'discovery_reason': reason}
             )
+            
+            # Double verification before marking offline
+            if final_status != 'used' and ip_obj.status == 'used':
+                import time
+                time.sleep(1)
+                _, retry_status, retry_reason = scan_single_host(ip_str, methods)
+                if retry_status == 'used':
+                    final_status = 'used'
+                    reason = retry_reason
         
             needs_save = False
             if final_status == 'used':
@@ -183,6 +192,16 @@ def perform_ip_discovery(ips_queryset):
         _, final_status, reason = scan_single_host(ip_str, methods)
 
         old_status = ip_obj.status
+        
+        # Double verification before marking offline
+        if final_status != 'used' and old_status == 'used':
+            import time
+            time.sleep(1)
+            _, retry_status, retry_reason = scan_single_host(ip_str, methods)
+            if retry_status == 'used':
+                final_status = 'used'
+                reason = retry_reason
+                
         if final_status == 'used':
             if not ip_obj.first_seen:
                 ip_obj.first_seen = timezone.now()

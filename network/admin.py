@@ -286,12 +286,17 @@ class IPAddressAdmin(admin.ModelAdmin):
         
     actions = ['scan_ips']
 
+    @admin.display(description='Actions')
     def clear_ip_button(self, obj):
         from django.utils.safestring import mark_safe
+        buttons = []
         if obj.status == 'available':
-            return mark_safe('<span style="color: #cbd5e1;"><i class="fas fa-eraser"></i> Clear</span>')
-        return mark_safe(f'<a href="#" onclick="if(confirm(\'Are you sure you want to completely wipe all data for {obj.ip_address} and mark it as Available?\')) window.location.href=\'/admin/network/ipaddress/{obj.id}/clear/\'; return false;" style="color: #ef4444; font-weight: 600; padding: 4px 8px; border: 1px solid #ef4444; border-radius: 4px; display: inline-block; white-space: nowrap;"><i class="fas fa-eraser"></i> Clear Data</a>')
-
+            buttons.append('<span style="color: #cbd5e1; padding: 4px 8px;"><i class="fas fa-eraser"></i> Clear</span>')
+        else:
+            buttons.append(f'<a href="#" onclick="if(confirm(\'Are you sure you want to wipe {obj.ip_address}?\')) window.location.href=\'/admin/network/ipaddress/{obj.id}/clear/\'; return false;" style="color: #ef4444; font-weight: 600; padding: 4px 8px; border: 1px solid #ef4444; border-radius: 4px; display: inline-block; white-space: nowrap;"><i class="fas fa-eraser"></i> Clear Data</a>')
+        if obj.status == 'offline':
+            buttons.append(f'<a href="/admin/network/ipaddress/{obj.id}/quick-check/" style="color: #f59e0b; font-weight: 600; padding: 4px 8px; border: 1px solid #f59e0b; border-radius: 4px; display: inline-block; white-space: nowrap; margin-left: 5px;"><i class="fas fa-sync-alt"></i> Quick Check</a>')
+        return mark_safe(f'<div style="display: flex; gap: 5px;">{" ".join(buttons)}</div>')
     @admin.display(description='Port Status Graph')
     def port_graph(self, obj):
         from django.utils.safestring import mark_safe
@@ -493,9 +498,28 @@ class IPAddressAdmin(admin.ModelAdmin):
         custom_urls = [
             path('api/check-hostname/', self.admin_site.admin_view(self.check_hostname_api), name='network_ipaddress_check_hostname'),
             path('<int:ip_id>/clear/', self.admin_site.admin_view(self.clear_ip_view), name='clear-ip'),
+            path('<int:ip_id>/quick-check/', self.admin_site.admin_view(self.quick_check_view), name='quick-check-ip'),
         ]
         return custom_urls + urls
 
+    def quick_check_view(self, request, ip_id):
+        from django.shortcuts import get_object_or_404
+        from django.http import HttpResponseRedirect
+        from django.contrib import messages
+        from django.urls import reverse
+        from .models import IPAddress
+        from .utils import perform_ip_discovery
+        
+        ip = get_object_or_404(IPAddress, id=ip_id)
+        if ip.status == 'offline':
+            perform_ip_discovery(IPAddress.objects.filter(id=ip_id))
+            ip.refresh_from_db()
+            if ip.status == 'used':
+                messages.success(request, f"{ip.ip_address} is now ONLINE!")
+            else:
+                messages.warning(request, f"{ip.ip_address} is still offline.")
+        return HttpResponseRedirect(reverse('admin:network_ipaddress_changelist'))
+        
     def clear_ip_view(self, request, ip_id):
         from django.shortcuts import get_object_or_404
         from django.http import HttpResponseRedirect
