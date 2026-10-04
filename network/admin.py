@@ -297,66 +297,62 @@ class IPAddressAdmin(admin.ModelAdmin):
         if obj.status == 'offline':
             buttons.append(f'<a href="/admin/network/ipaddress/{obj.id}/quick-check/" style="color: #f59e0b; font-weight: 600; padding: 4px 8px; border: 1px solid #f59e0b; border-radius: 4px; display: inline-block; white-space: nowrap; margin-left: 5px;"><i class="fas fa-sync-alt"></i> Quick Check</a>')
         return mark_safe(f'<div style="display: flex; gap: 5px;">{" ".join(buttons)}</div>')
-    @admin.display(description='Port Status Graph')
+    @admin.display(description='Services & Ports Analysis')
     def port_graph(self, obj):
         from django.utils.safestring import mark_safe
         if not obj or not obj.discovery_reason:
-            return mark_safe('<p style="color: #64748b; font-style: italic;">No scan data available to generate port graph.</p>')
+            return mark_safe('<div style="padding: 20px; text-align: center; color: #64748b; font-style: italic; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;"><i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px; color: #94a3b8; display: block;"></i> No scan data available. Wait for the next discovery cycle.</div>')
             
-        import re
         reason = obj.discovery_reason
         
-        # Determine common ports status
         ports = {
-            'ICMP/Ping': {'color': '#94a3b8', 'open': False, 'desc': 'Network Reachability'},
-            'Port 22 (SSH)': {'color': '#94a3b8', 'open': False, 'desc': 'Secure Shell'},
-            'Port 80 (HTTP)': {'color': '#94a3b8', 'open': False, 'desc': 'Web Traffic'},
-            'Port 443 (HTTPS)': {'color': '#94a3b8', 'open': False, 'desc': 'Secure Web'},
-            'Port 3389 (RDP)': {'color': '#94a3b8', 'open': False, 'desc': 'Remote Desktop'},
+            'ICMP_Ping': {'name': 'Network Reachability (Ping)', 'icon': 'fa-network-wired', 'color': '#64748b', 'open': False, 'desc': 'ICMP Echo / Reply'},
+            'SSH': {'name': 'Secure Shell (SSH)', 'icon': 'fa-terminal', 'color': '#64748b', 'open': False, 'desc': 'Port 22 / TCP'},
+            'HTTP': {'name': 'Web Service (HTTP)', 'icon': 'fa-globe', 'color': '#64748b', 'open': False, 'desc': 'Port 80 / TCP'},
+            'HTTPS': {'name': 'Secure Web (HTTPS)', 'icon': 'fa-lock', 'color': '#64748b', 'open': False, 'desc': 'Port 443 / TCP'},
+            'RDP': {'name': 'Remote Desktop (RDP)', 'icon': 'fa-desktop', 'color': '#64748b', 'open': False, 'desc': 'Port 3389 / TCP'},
+            'Custom': {'name': 'Custom Services', 'icon': 'fa-layer-group', 'color': '#64748b', 'open': False, 'desc': 'Other detected ports'},
         }
         
-        if 'Ping' in reason or 'ICMP' in reason:
-            ports['ICMP/Ping']['open'] = True
-            ports['ICMP/Ping']['color'] = '#10b981' # Green
-            
-        if 'Port 22' in reason:
-            ports['Port 22 (SSH)']['open'] = True
-            ports['Port 22 (SSH)']['color'] = '#10b981'
-            
-        if 'Port 80' in reason:
-            ports['Port 80 (HTTP)']['open'] = True
-            ports['Port 80 (HTTP)']['color'] = '#10b981'
-            
-        if 'Port 443' in reason:
-            ports['Port 443 (HTTPS)']['open'] = True
-            ports['Port 443 (HTTPS)']['color'] = '#10b981'
-            
-        if 'Port 3389' in reason:
-            ports['Port 3389 (RDP)']['open'] = True
-            ports['Port 3389 (RDP)']['color'] = '#10b981'
-            
-        # Check for other custom ports
-        custom_ports = re.findall(r'Port (\d+)', reason)
-        for p in custom_ports:
-            if p not in ['22', '80', '443', '3389']:
-                ports[f'Port {p} (Custom)'] = {'color': '#3b82f6', 'open': True, 'desc': 'Custom User Port'}
+        if 'Ping' in reason or 'ICMP' in reason: ports['ICMP_Ping']['open'] = True
+        if 'Port 22' in reason or 'SSH' in reason: ports['SSH']['open'] = True
+        if 'Port 80' in reason or ('HTTP' in reason and 'HTTPS' not in reason): ports['HTTP']['open'] = True
+        if 'Port 443' in reason or 'HTTPS' in reason: ports['HTTPS']['open'] = True
+        if 'Port 3389' in reason or 'RDP' in reason: ports['RDP']['open'] = True
+        if 'Custom' in reason or 'Port 4141' in reason or 'API' in reason: ports['Custom']['open'] = True
 
-        html = '<div style="display: flex; gap: 20px; align-items: flex-end; height: 180px; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 10px;">'
+        html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; padding: 5px;">'
         
-        for name, data in ports.items():
-            height = "120px" if data['open'] else "20px"
-            opacity = "1" if data['open'] else "0.3"
-            status_text = "OPEN" if data['open'] else "CLOSED"
+        for key, info in ports.items():
+            if info['open']:
+                bg_color = '#ecfdf5'
+                border_color = '#a7f3d0'
+                icon_color = '#10b981'
+                status_text = 'AVAILABLE'
+                pulse = '<span style="position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 0 rgba(16, 185, 129, 1); animation: pulse-green 2s infinite;"></span>'
+            else:
+                bg_color = '#f8fafc'
+                border_color = '#e2e8f0'
+                icon_color = '#94a3b8'
+                status_text = 'CLOSED'
+                pulse = '<span style="position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; background: #cbd5e1; border-radius: 50%;"></span>'
+                
             html += f"""
-            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; position: relative;">
-                <div style="position: absolute; top: -25px; font-size: 11px; font-weight: bold; color: {data['color']}; opacity: {opacity};">{status_text}</div>
-                <div style="width: 40px; height: {height}; background-color: {data['color']}; border-radius: 6px 6px 0 0; opacity: {opacity}; transition: height 0.5s ease, opacity 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"></div>
-                <div style="margin-top: 10px; font-size: 12px; font-weight: 600; color: #475569; text-align: center; white-space: nowrap;">{name}</div>
-                <div style="font-size: 10px; color: #94a3b8; text-align: center;">{data['desc']}</div>
+            <div style="position: relative; background: {bg_color}; border: 1px solid {border_color}; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 12px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                {pulse}
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: {icon_color}; font-size: 18px;">
+                    <i class="fas {info['icon']}"></i>
+                </div>
+                <div>
+                    <div style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">{info['name']}</div>
+                    <div style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.3px;">{info['desc']} &bull; <span style="color: {icon_color}; font-weight: 700;">{status_text}</span></div>
+                </div>
             </div>
             """
             
         html += '</div>'
+        html += "\n<style>\n@keyframes pulse-green {\n    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }\n    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }\n    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }\n}\n</style>\n"
+        
         return mark_safe(html)
 
     clear_ip_button.short_description = "Actions"
