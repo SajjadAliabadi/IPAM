@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 echo "=========================================="
 echo " IPAM Enterprise - Update Script"
 echo "=========================================="
@@ -10,7 +10,7 @@ fi
 
 echo "[1/4] Pulling latest changes from Git..."
 git fetch origin main
-git reset --hard origin/main  # Change 'main' to your branch name if different
+git reset --hard origin/main
 
 echo "[2/4] Activating Virtual Environment and updating dependencies..."
 source venv/bin/activate
@@ -19,6 +19,8 @@ pip install -r requirements.txt
 echo "[3/4] Collecting Static Files & Migrating Database..."
 python manage.py collectstatic --noinput
 python manage.py migrate
+echo "      Setting up default permission groups..."
+python manage.py setup_default_groups
 
 echo "[4/4] Restarting IPAM Services..."
 systemctl restart ipam-web.service
