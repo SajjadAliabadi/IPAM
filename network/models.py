@@ -83,6 +83,7 @@ class SystemSettings(models.Model):
     telegram_chat_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="Telegram Chat/Group ID")
     alert_on_subnet_full = models.BooleanField(default=True, verbose_name="Alert when subnet is >90% full")
     alert_on_critical_offline = models.BooleanField(default=True, verbose_name="Alert when manually assigned IP goes offline")
+    alert_on_any_offline = models.BooleanField(default=False, verbose_name="Alert when ANY active IP goes offline", help_text="Sends an alert when any IP (even auto-discovered devices like phones/laptops) goes offline.")
     alert_on_new_ip_request = models.BooleanField(default=True, verbose_name="Alert on New IP Request")
     alert_on_ip_in_use = models.BooleanField(default=False, verbose_name="Alert when Available IP becomes In Use")
     alert_on_new_ip_discovered = models.BooleanField(default=True, verbose_name="Alert on New Unmanaged IP Discovered")
@@ -173,11 +174,12 @@ class IPAddress(models.Model):
                     if settings.alert_on_ip_in_use:
                         send_alert(f"🟢 *IP In Use*\nThe available IP {self.ip_address} is now marked as In Use.")
                 elif self.status == 'offline':
-                    if settings.alert_on_critical_offline:
-                        # Only alert if it was a manually assigned IP to avoid noise
-                        if self.discovery_reason and 'Manually' in self.discovery_reason:
-                            hostname_str = f" ({self.hostname})" if self.hostname else ""
-                            send_alert(f"🔴 *Critical IP Offline Alert*\nThe manually assigned IP {self.ip_address}{hostname_str} has gone offline!")
+                    is_manual = self.discovery_reason and 'Manually' in self.discovery_reason
+                    hostname_str = f" ({self.hostname})" if self.hostname else ""
+                    if is_manual and settings.alert_on_critical_offline:
+                        send_alert(f"🔴 *Critical IP Offline Alert*\nThe manually assigned IP {self.ip_address}{hostname_str} has gone offline!")
+                    elif settings.alert_on_any_offline:
+                        send_alert(f"⚠️ *IP Offline Alert*\nThe IP {self.ip_address}{hostname_str} has gone offline.")
             except:
                 pass
 

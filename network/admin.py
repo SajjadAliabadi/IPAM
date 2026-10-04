@@ -1029,7 +1029,8 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             ('Alert Policies & Events', {
                 'fields': (
                     'alert_on_subnet_full', 'alert_on_critical_offline',
-                    'alert_on_new_ip_request', 'alert_on_ip_in_use',
+                    'alert_on_any_offline', 'alert_on_new_ip_request', 
+                    'alert_on_ip_in_use',
                     'alert_on_new_ip_discovered', 'alert_on_disk_full',
                     'alert_on_cpu_high', 'alert_on_memory_high',
                     'alert_on_failed_login'
