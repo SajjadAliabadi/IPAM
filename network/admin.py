@@ -523,7 +523,7 @@ class IPAddressAdmin(admin.ModelAdmin):
     vlan_display.short_description = 'VLAN'
         
     def get_readonly_fields(self, request, obj=None):
-        base_ro = ('subnet', 'vlan_display', 'discovery_reason_display', 'last_checked', 'status', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
+        base_ro = ('subnet', 'vlan_display', 'discovery_reason_display', 'last_checked', 'status_with_action', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
         if obj:
             return ('ip_address',) + base_ro
         return base_ro
