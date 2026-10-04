@@ -6,7 +6,18 @@
 <div class="card" style="border-radius: 15px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: none; overflow: hidden; padding: 30px; background: white;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="margin: 0; font-family: 'Inter', sans-serif; font-weight: 700; color: #1e293b; text-transform: capitalize;">{{ metric_type }} Usage History (Last 7 Days)</h2>
-        <a href="{% url 'admin:network_auditlog_changelist' %}" class="btn btn-outline-secondary" style="border-radius: 8px;"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            {% if metric_type != 'network' %}
+            <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label for="auto-scale" style="margin: 0; font-size: 14px; font-weight: 600; color: #475569; cursor: pointer; padding-right: 10px;">Auto Scale (Fluctuations)</label>
+                <div class="custom-control custom-switch" style="margin: 0; padding-left: 2.25rem;">
+                    <input type="checkbox" class="custom-control-input" id="auto-scale">
+                    <label class="custom-control-label" for="auto-scale" style="cursor: pointer;"></label>
+                </div>
+            </div>
+            {% endif %}
+            <a href="{% url 'admin:network_auditlog_changelist' %}" class="btn btn-outline-secondary" style="border-radius: 8px;"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
     </div>
     
     <div id="metric-chart" style="min-height: 400px; width: 100%;"></div>
@@ -88,7 +99,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: {
                         text: yTitle
                     },
-                    max: maxVal
+                    max: maxVal,
+                    min: ('{{ metric_type }}' === 'network') ? undefined : 0
                 },
                 xaxis: {
                     type: 'datetime',
@@ -106,6 +118,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
             var chart = new ApexCharts(document.querySelector("#metric-chart"), options);
             chart.render();
+            
+            const autoScaleToggle = document.getElementById('auto-scale');
+            if (autoScaleToggle) {
+                autoScaleToggle.addEventListener('change', function(e) {
+                    if (e.target.checked) {
+                        chart.updateOptions({
+                            yaxis: { max: undefined, min: undefined, title: { text: yTitle } }
+                        });
+                    } else {
+                        chart.updateOptions({
+                            yaxis: { max: 100, min: 0, title: { text: yTitle } }
+                        });
+                    }
+                });
+            }
         });
 });
 </script>
