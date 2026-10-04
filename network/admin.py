@@ -265,10 +265,10 @@ class IPAddressAdmin(admin.ModelAdmin):
     list_filter = ('status', 'subnet', IsNewIPFilter)
     ordering = ('ip_address_padded',)
     
-    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name')
+    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name', 'discovery_reason_display')
     fieldsets = (
         ('IP Configuration', {
-            'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'os_name', 'status', 'discovery_reason')
+            'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'os_name', 'status', 'discovery_reason_display')
         }),
         ('Port Analysis', {
             'fields': ('port_graph',),
@@ -392,6 +392,25 @@ class IPAddressAdmin(admin.ModelAdmin):
         return mark_safe(html)
 
     clear_ip_button.short_description = "Actions"
+
+    @admin.display(description='Discovery Reason')
+    def discovery_reason_display(self, obj):
+        from django.utils.safestring import mark_safe
+        dr = obj.discovery_reason or ""
+        
+        if not dr:
+            return mark_safe('<span style="color: #94a3b8; font-style: italic;">No discovery data</span>')
+            
+        if dr.startswith('Manually') or 'Reservation Expired' in dr or dr.startswith('Last seen'):
+            return mark_safe(f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 8px; color: #475569; font-weight: 500; display: inline-block;"><i class="fas fa-info-circle" style="color: #64748b; margin-right: 8px;"></i> {dr}</div>')
+            
+        methods = [m.strip() for m in dr.split('|') if m.strip()]
+        badges = []
+        for m in methods:
+            m = m.replace('Detected via ', '')
+            badges.append(f'<div style="display: inline-flex; align-items: center; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); color: #334155; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-right: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);"><i class="fas fa-satellite-dish" style="margin-right: 8px; color: #3b82f6;"></i>{m}</div>')
+            
+        return mark_safe('<div style="display: flex; flex-wrap: wrap; align-items: center;">' + ''.join(badges) + '</div>')
 
     def usage_reason(self, obj):
         from django.utils.safestring import mark_safe
@@ -519,7 +538,7 @@ class IPAddressAdmin(admin.ModelAdmin):
     vlan_display.short_description = 'VLAN'
         
     def get_readonly_fields(self, request, obj=None):
-        base_ro = ('subnet', 'vlan_display', 'discovery_reason', 'last_checked', 'status', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
+        base_ro = ('subnet', 'vlan_display', 'discovery_reason_display', 'last_checked', 'status', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
         if obj:
             return ('ip_address',) + base_ro
         return base_ro
