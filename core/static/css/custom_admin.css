@@ -849,3 +849,94 @@ nav.app-header, .app-header {
 .app-sidebar {
     margin-top: 0 !important;
 }
+/* ==========================================================================
+   MODERN SEGMENTED TABS (Form Fieldsets & Inlines)
+   ========================================================================== */
+body:not(.dark-mode) .nav-tabs {
+    border: none !important;
+    background: #f1f5f9 !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+    display: inline-flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    margin-bottom: 25px !important;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02) !important;
+}
+
+body:not(.dark-mode) .nav-tabs .nav-item {
+    margin: 0 !important;
+}
+
+body:not(.dark-mode) .nav-tabs .nav-link {
+    border: none !important;
+    background: transparent !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body:not(.dark-mode) .nav-tabs .nav-link:hover {
+    color: #0f172a !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+}
+
+body:not(.dark-mode) .nav-tabs .nav-link.active {
+    background: #ffffff !important;
+    color: #3b82f6 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+/* Dark Mode Tabs */
+body.dark-mode .nav-tabs {
+    border: none !important;
+    background: #0f172a !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+    display: inline-flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    margin-bottom: 25px !important;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+body.dark-mode .nav-tabs .nav-item {
+    margin: 0 !important;
+}
+
+body.dark-mode .nav-tabs .nav-link {
+    border: none !important;
+    background: transparent !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body.dark-mode .nav-tabs .nav-link:hover {
+    color: #cbd5e1 !important;
+    background: rgba(30, 41, 59, 0.5) !important;
+}
+
+body.dark-mode .nav-tabs .nav-link.active {
+    background: #1e293b !important;
+    color: #60a5fa !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+/* Ensure the tab content container has no ugly borders */
+.tab-content {
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Override old ::after rules */
+body:not(.dark-mode) .nav-tabs .nav-link.active::after,
+body.dark-mode .nav-tabs .nav-link.active::after {
+    display: none !important;
+}
