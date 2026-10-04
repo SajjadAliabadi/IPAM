@@ -15,10 +15,10 @@ function openStatusModal(ipId, ipAddress, currentStatus, hostname, mac, os, reas
     <div class="modal fade" id="ipStatusModal" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-          <div class="modal-header" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid #e2e8f0; border-radius: 16px 16px 0 0; padding: 20px 25px;">
-            <h5 class="modal-title" style="font-weight: 700; color: #1e293b;"><i class="fas fa-edit" style="color: #3b82f6; margin-right: 8px;"></i> Change Details for ${ipAddress}</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="opacity: 0.5;">
-              <span aria-hidden="true">&times;</span>
+          <div class="modal-header" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid #e2e8f0; border-radius: 16px 16px 0 0; padding: 20px 25px; display: flex; justify-content: space-between; align-items: center;">
+            <h5 class="modal-title" style="margin: 0; font-weight: 700; color: #1e293b;"><i class="fas fa-edit" style="color: #3b82f6; margin-right: 8px;"></i> Change Details for ${ipAddress}</h5>
+            <button type="button" onclick="jQuery('#ipStatusModal').modal('hide');" style="background: transparent; border: none; font-size: 22px; color: #94a3b8; cursor: pointer; outline: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'; this.style.color='#ef4444';" onmouseout="this.style.background='transparent'; this.style.color='#94a3b8';">
+              <i class="fas fa-times"></i>
             </button>
           </div>
           <form method="POST" action="/admin/network/ipaddress/${ipId}/change-status-modal/">
@@ -57,7 +57,7 @@ function openStatusModal(ipId, ipAddress, currentStatus, hostname, mac, os, reas
 
             </div>
             <div class="modal-footer" style="border-top: 1px solid #e2e8f0; padding: 15px 25px; border-radius: 0 0 16px 16px; background: #f8fafc;">
-              <button type="button" class="btn btn-light" data-dismiss="modal" style="border-radius: 8px; font-weight: 600; color: #475569;">Cancel</button>
+              <button type="button" onclick="jQuery('#ipStatusModal').modal('hide');" class="btn btn-light" style="border-radius: 8px; font-weight: 600; color: #475569; border: 1px solid #e2e8f0;">Cancel</button>
               <button type="submit" class="btn btn-primary" style="border-radius: 8px; font-weight: 600; padding: 8px 20px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);">Save Changes</button>
             </div>
           </form>
