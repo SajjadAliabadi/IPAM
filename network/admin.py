@@ -1026,8 +1026,17 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 'fields': ('theme', 'custom_logo'),
                 'description': mark_safe('<div style="background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%); border: 1px solid #fbcfe8; border-left: 4px solid #c026d3; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(192, 38, 211, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-paint-roller" style="color: #c026d3; font-size: 22px;"></i></div><div><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Interface & Branding</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5;">Customize the visual appearance of the IPAM dashboard. Select from multiple built-in dark and light themes, and upload your own corporate logo. Changes apply instantly.</p></div></div>')
             }),
+            ('Alert Policies & Events', {
+                'fields': (
+                    'alert_on_subnet_full', 'alert_on_critical_offline'
+                ),
+                'description': mark_safe('<div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca; border-left: 4px solid #ef4444; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-bell" style="color: #ef4444; font-size: 24px;"></i></div><div><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Alert Policies & Triggers</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5;">Select which system events and thresholds should trigger an alert. Notifications will be sent via all enabled channels (Telegram, Mattermost, SMS).</p></div></div>')
+            }),
             ('Alerting (Telegram)', {
-                'fields': ('telegram_bot_token', 'telegram_chat_id', 'alert_on_subnet_full', 'alert_on_critical_offline'),
+                'fields': (
+                    'alert_telegram',
+                    ('telegram_bot_token', 'telegram_chat_id'),
+                ),
                 'description': mark_safe('<div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05); display: flex; align-items: center; gap: 15px;"><div style="background: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><i class="fab fa-telegram-plane" style="color: #3b82f6; font-size: 24px;"></i></div><div><h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 3px;">Telegram Bot API</h4><p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">Configure a bot to receive real-time IPAM alerts directly to your phone.</p></div></div>')
             }),
             ('Alerting (Mattermost)', {

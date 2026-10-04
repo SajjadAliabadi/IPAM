@@ -78,6 +78,7 @@ class SystemSettings(models.Model):
     monitoring_retention_days = models.IntegerField(default=30, verbose_name="Monitoring Logs Retention (Days)", help_text="Number of days to keep audit logs before they are auto-deleted.")
     clear_monitoring_logs = models.BooleanField(default=False, verbose_name="Clear All Monitoring Logs", help_text="Check this box and save to instantly delete ALL monitoring (audit) logs.")
     
+    alert_telegram = models.BooleanField(default=False, verbose_name="Enable Telegram Alerts")
     telegram_bot_token = models.CharField(max_length=255, null=True, blank=True, verbose_name="Telegram Bot Token", help_text="Get this from @BotFather")
     telegram_chat_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="Telegram Chat/Group ID")
     alert_on_subnet_full = models.BooleanField(default=True, verbose_name="Alert when subnet is >90% full")

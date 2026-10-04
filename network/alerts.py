@@ -6,7 +6,7 @@ def send_alert(message):
     settings = SystemSettings.load()
     
     # 1. Telegram
-    if settings.telegram_bot_token and settings.telegram_chat_id:
+    if settings.alert_telegram and settings.telegram_bot_token and settings.telegram_chat_id:
         url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
         payload = {
             'chat_id': settings.telegram_chat_id,
