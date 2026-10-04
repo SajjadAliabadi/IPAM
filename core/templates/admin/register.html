@@ -1,0 +1,207 @@
+{% load i18n static jazzmin %}
+{% get_jazzmin_settings request as jazzmin_settings %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register | {{ jazzmin_settings.site_title }}</title>
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/adminlte/css/adminlte.min.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .login-wrapper {
+            display: flex;
+            width: 900px;
+            max-width: 95%;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+        .login-sidebar {
+            flex: 1;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        .login-sidebar::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>') repeat;
+            opacity: 0.5;
+            z-index: 1;
+        }
+        .login-sidebar-content {
+            position: relative;
+            z-index: 2;
+        }
+        .login-sidebar h2 {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        .login-sidebar p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        .login-form-container {
+            flex: 1;
+            padding: 40px 40px;
+            background: white;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        .login-form-container h3 {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+        .welcome-text {
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 10px 15px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            background: #ffffff;
+            outline: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+            color: white;
+        }
+        .auth-links {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .callout {
+            border-radius: 8px;
+            border-left-width: 4px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 768px) {
+            .login-sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-sidebar">
+            <div class="login-sidebar-content">
+                <h2>Join {{ jazzmin_settings.site_header }}</h2>
+                <p>Register for an account to request IP addresses and manage your network resources.</p>
+                <div style="margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px;">
+                    <small>Your account will initially have Requester access. An administrator can upgrade your permissions later.</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="login-form-container">
+            <h3>{% trans 'Create Account' %}</h3>
+            <p class="welcome-text">Fill in the details below to register.</p>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="callout callout-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" style="background-color: {% if message.tags == 'error' %}#fef2f2{% else %}#f0fdf4{% endif %}; border-left-color: {% if message.tags == 'error' %}#ef4444{% else %}#22c55e{% endif %}; color: {% if message.tags == 'error' %}#991b1b{% else %}#166534{% endif %};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form action="{% url 'register' %}" method="post">
+                {% csrf_token %}
+                
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label style="font-weight: 600; color: #475569; margin-bottom: 5px; display: block; font-size: 0.9rem;">First Name</label>
+                        <input type="text" name="first_name" class="form-control" placeholder="First Name">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label style="font-weight: 600; color: #475569; margin-bottom: 5px; display: block; font-size: 0.9rem;">Last Name</label>
+                        <input type="text" name="last_name" class="form-control" placeholder="Last Name">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; color: #475569; margin-bottom: 5px; display: block; font-size: 0.9rem;">Username *</label>
+                    <div class="input-group" style="display: flex;">
+                        <span class="input-group-text" style="background: transparent; border-right: none; color: #94a3b8; border-radius: 8px 0 0 8px; border: 1px solid #cbd5e1; border-right: 0;"><i class="fas fa-user"></i></span>
+                        <input type="text" name="username" class="form-control" style="border-left: none; border-radius: 0 8px 8px 0;" placeholder="Choose a username" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-weight: 600; color: #475569; margin-bottom: 5px; display: block; font-size: 0.9rem;">Password *</label>
+                    <div class="input-group" style="display: flex;">
+                        <span class="input-group-text" style="background: transparent; border-right: none; color: #94a3b8; border-radius: 8px 0 0 8px; border: 1px solid #cbd5e1; border-right: 0;"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" class="form-control" style="border-left: none; border-radius: 0 8px 8px 0;" placeholder="Enter your password" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; color: #475569; margin-bottom: 5px; display: block; font-size: 0.9rem;">Confirm Password *</label>
+                    <div class="input-group" style="display: flex;">
+                        <span class="input-group-text" style="background: transparent; border-right: none; color: #94a3b8; border-radius: 8px 0 0 8px; border: 1px solid #cbd5e1; border-right: 0;"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password_confirm" class="form-control" style="border-left: none; border-radius: 0 8px 8px 0;" placeholder="Confirm your password" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary text-white">
+                    {% trans 'Register' %} <i class="fas fa-check" style="margin-left: 8px;"></i>
+                </button>
+            </form>
+            
+            <div class="auth-links">
+                <p style="color: #64748b; margin-bottom: 10px; font-size: 0.95rem;">Already have an account?</p>
+                <a href="{% url 'admin:login' %}" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border: 2px solid #e2e8f0; border-radius: 8px; color: #475569; width: 100%; transition: all 0.2s; text-decoration: none; font-weight: 600;">
+                    <i class="fas fa-sign-in-alt"></i> Back to Login
+                </a>
+            </div>
+            
+        </div>
+    </div>
+</body>
+</html>

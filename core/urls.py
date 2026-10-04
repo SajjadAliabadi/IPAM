@@ -1,3 +1,4 @@
+from network import views as network_views
 """
 URL configuration for core project.
 
@@ -21,5 +22,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path('register/', network_views.register_view, name='register'),
     path('admin/', admin.site.urls),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

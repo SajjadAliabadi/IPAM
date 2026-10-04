@@ -17,6 +17,7 @@
 {% block content %}
 {% load dashboard_tags %}
 {% get_dashboard_stats as stats %}
+    {% if perms.network.view_ipaddress %}
     <div class="col-12 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="m-0" style="color: #334155; font-weight: 600;"><i class="fas fa-tachometer-alt" style="margin-right: 8px;"></i> IPAM Overview</h4>
@@ -117,6 +118,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     {% get_side_menu using="app_list" as dashboard_list %}
     {% if dashboard_list %}
