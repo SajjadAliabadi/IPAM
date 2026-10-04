@@ -462,25 +462,7 @@ class IPAddressAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-    def save_model(self, request, obj, form, change):
-        from django.utils import timezone
-        if obj.clear_all_new_ips:
-            from network.models import IPAddress
-            import datetime
-            # Push first_seen far into the past so they are no longer "new"
-            IPAddress.objects.filter(first_seen__isnull=False).update(first_seen=timezone.now() - datetime.timedelta(days=365))
-            obj.clear_all_new_ips = False
-            from django.contrib import messages
-            messages.success(request, "All 'New' badges have been cleared successfully.")
-            
-        if obj.clear_monitoring_logs:
-            from network.models import AuditLog
-            count, _ = AuditLog.objects.all().delete()
-            obj.clear_monitoring_logs = False
-            from django.contrib import messages
-            messages.success(request, f"Successfully cleared {count} monitoring logs.")
-            
-        super().save_model(request, obj, form, change)
+
 
     def has_add_permission(self, request):
         return False
@@ -921,25 +903,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     readonly_fields = ('timestamp', 'action', 'model_name', 'user', 'message')
 
 
-    def save_model(self, request, obj, form, change):
-        from django.utils import timezone
-        if obj.clear_all_new_ips:
-            from network.models import IPAddress
-            import datetime
-            # Push first_seen far into the past so they are no longer "new"
-            IPAddress.objects.filter(first_seen__isnull=False).update(first_seen=timezone.now() - datetime.timedelta(days=365))
-            obj.clear_all_new_ips = False
-            from django.contrib import messages
-            messages.success(request, "All 'New' badges have been cleared successfully.")
-            
-        if obj.clear_monitoring_logs:
-            from network.models import AuditLog
-            count, _ = AuditLog.objects.all().delete()
-            obj.clear_monitoring_logs = False
-            from django.contrib import messages
-            messages.success(request, f"Successfully cleared {count} monitoring logs.")
-            
-        super().save_model(request, obj, form, change)
+
 
     def has_add_permission(self, request):
         return False
@@ -957,6 +921,49 @@ class AuditLogAdmin(admin.ModelAdmin):
 
 @admin.register(SystemSettings)
 class SystemSettingsAdmin(admin.ModelAdmin):
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('clear-badges/', self.admin_site.admin_view(self.clear_badges_view), name='systemsettings_clear_badges'),
+            path('clear-logs/', self.admin_site.admin_view(self.clear_logs_view), name='systemsettings_clear_logs'),
+        ]
+        return custom_urls + urls
+
+    def clear_badges_view(self, request):
+        from network.models import IPAddress
+        import datetime
+        from django.utils import timezone
+        from django.contrib import messages
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        IPAddress.objects.filter(first_seen__isnull=False).update(first_seen=timezone.now() - datetime.timedelta(days=365))
+        messages.success(request, "All 'New' badges have been cleared successfully.")
+        return HttpResponseRedirect(reverse('admin:network_systemsettings_change', args=[1]))
+
+    def clear_logs_view(self, request):
+        from network.models import AuditLog
+        from django.contrib import messages
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        count, _ = AuditLog.objects.all().delete()
+        messages.success(request, f"Successfully cleared {count} monitoring logs.")
+        return HttpResponseRedirect(reverse('admin:network_systemsettings_change', args=[1]))
+
+    @admin.display(description="Clear All 'New' Badges")
+    def action_clear_badges(self, obj):
+        from django.utils.safestring import mark_safe
+        from django.urls import reverse
+        url = reverse('admin:systemsettings_clear_badges')
+        return mark_safe(f'<a href="{url}" class="btn btn-outline-danger" style="border-radius: 8px; font-weight: 600; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;" onclick="return confirm(\'Are you sure you want to clear all New badges?\');"><i class="fas fa-eraser"></i> Clear Badges</a>')
+
+    @admin.display(description="Clear All Monitoring Logs")
+    def action_clear_logs(self, obj):
+        from django.utils.safestring import mark_safe
+        from django.urls import reverse
+        url = reverse('admin:systemsettings_clear_logs')
+        return mark_safe(f'<a href="{url}" class="btn btn-outline-danger" style="border-radius: 8px; font-weight: 600; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;" onclick="return confirm(\'Are you sure you want to delete ALL monitoring logs?\');"><i class="fas fa-trash-alt"></i> Delete Logs</a>')
+
     fieldsets = (
         ('UI & Theming', {
             'fields': ('theme', 'custom_logo')
@@ -1003,6 +1010,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'theme', 'offline_timeout_hours', 'auto_assign_ips')
     
     form = SystemSettingsForm
+    readonly_fields = ('action_clear_badges', 'action_clear_logs')
     def get_fieldsets(self, request, obj=None):
         from django.utils import timezone
         current_time = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S')
@@ -1035,7 +1043,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                     'auto_assign_ips', 'enable_reservation', 
                     'reservation_timeout_hours', 'offline_timeout_hours', 
                     'new_ip_duration_hours', 'monitoring_retention_days', 
-                    'clear_all_new_ips', 'clear_monitoring_logs'
+                    'action_clear_badges', 'action_clear_logs'
                 ),
                 'description': mark_safe('<div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-left: 4px solid #6366f1; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-robot" style="color: #6366f1; font-size: 24px;"></i></div><div><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Automation Engine & Lifecycle Rules</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5;">Configure how the system automatically provisions new IPs, recycles offline servers, and manages data retention. These rules run continuously in the background to keep your network state perfectly accurate.</p></div></div>')
             }),
@@ -1048,25 +1056,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         )
 
 
-    def save_model(self, request, obj, form, change):
-        from django.utils import timezone
-        if obj.clear_all_new_ips:
-            from network.models import IPAddress
-            import datetime
-            # Push first_seen far into the past so they are no longer "new"
-            IPAddress.objects.filter(first_seen__isnull=False).update(first_seen=timezone.now() - datetime.timedelta(days=365))
-            obj.clear_all_new_ips = False
-            from django.contrib import messages
-            messages.success(request, "All 'New' badges have been cleared successfully.")
-            
-        if obj.clear_monitoring_logs:
-            from network.models import AuditLog
-            count, _ = AuditLog.objects.all().delete()
-            obj.clear_monitoring_logs = False
-            from django.contrib import messages
-            messages.success(request, f"Successfully cleared {count} monitoring logs.")
-            
-        super().save_model(request, obj, form, change)
+
 
     def has_add_permission(self, request):
         return False if self.model.objects.exists() else super().has_add_permission(request)
