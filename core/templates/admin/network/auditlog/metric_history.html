@@ -22,20 +22,25 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch("{% url 'server_metric_history_api' metric_type %}")
         .then(response => response.json())
         .then(data => {
-            const chartData = data.data;
             let yTitle = 'Percentage (%)';
             let maxVal = 100;
+            let seriesData = [];
+            let colorsData = ['#3b82f6'];
             
             if ('{{ metric_type }}' === 'network') {
-                yTitle = 'Bytes (Sent + Recv)';
+                yTitle = 'Speed (Mbps)';
                 maxVal = undefined;
+                seriesData = [
+                    { name: 'Upload (Mbps)', data: data.data_sent },
+                    { name: 'Download (Mbps)', data: data.data_recv }
+                ];
+                colorsData = ['#3b82f6', '#10b981']; // Blue for upload, Green for download
+            } else {
+                seriesData = [{ name: '{{ metric_type|title }}', data: data.data }];
             }
             
             var options = {
-                series: [{
-                    name: '{{ metric_type|title }}',
-                    data: chartData
-                }],
+                series: seriesData,
                 chart: {
                     type: 'area',
                     stacked: false,
@@ -59,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 },
-                colors: ['#3b82f6'],
+                colors: colorsData,
                 dataLabels: {
                     enabled: false
                 },

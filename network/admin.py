@@ -1049,3 +1049,15 @@ class CustomUserAdmin(UserAdmin):
     # But to hide the raw hash text, we can use a custom form or just rely on Django's default 
     # UserAdmin behavior which ONLY shows the 'Raw passwords are not stored...' string.
     # To truly hide the raw hash and only show the link, we can modify the password field's readonly display.
+\n
+from django.contrib.auth.models import Group
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
+
+admin.site.unregister(Group)
+
+@admin.register(Group)
+class CustomGroupAdmin(BaseGroupAdmin):
+    class Media:
+        css = {
+            'all': ('css/modern_filter_horizontal.css',)
+        }

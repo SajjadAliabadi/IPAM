@@ -1,0 +1,149 @@
+﻿/* Modern Filter Horizontal (Dual Listbox) for Django Admin */
+.selector {
+    display: flex !important;
+    align-items: stretch;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.selector .selector-available, 
+.selector .selector-chosen {
+    width: 45% !important;
+    float: none !important;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.selector h2 {
+    background: #f8fafc !important;
+    color: #1e293b !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    padding: 12px 15px !important;
+    border-bottom: 1px solid #e2e8f0;
+    margin: 0 !important;
+    text-align: left;
+}
+
+.selector .selector-filter {
+    padding: 12px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.selector .selector-filter label {
+    display: none; /* Hide the magnifying glass icon if ugly, or style it */
+}
+
+.selector .selector-filter input {
+    width: 100% !important;
+    padding: 8px 12px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    outline: none !important;
+    transition: border-color 0.2s;
+}
+
+.selector .selector-filter input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.selector select {
+    width: 100% !important;
+    flex-grow: 1;
+    min-height: 250px !important;
+    border: none !important;
+    padding: 5px !important;
+    font-family: inherit !important;
+    font-size: 14px !important;
+}
+
+.selector select option {
+    padding: 8px 12px !important;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    color: #475569 !important;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.selector select option:hover {
+    background-color: #f1f5f9 !important;
+}
+
+.selector select option:checked {
+    background-color: #e0f2fe !important;
+    color: #0369a1 !important;
+}
+
+/* Middle buttons */
+.selector .selector-chooser {
+    width: 10% !important;
+    float: none !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    background: transparent !important;
+}
+
+.selector .selector-chooser li {
+    margin: 0 !important;
+}
+
+.selector-add, 
+.selector-remove {
+    background: #3b82f6 !important;
+    color: white !important;
+    border-radius: 50% !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-indent: 0 !important;
+    font-size: 18px !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3) !important;
+}
+.selector-add::after {
+    content: "→" !important;
+}
+.selector-remove::after {
+    content: "←" !important;
+}
+.selector-add:hover, 
+.selector-remove:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Choose All / Clear All */
+a.selector-chooseall, 
+a.selector-clearall {
+    display: block;
+    text-align: center;
+    padding: 10px !important;
+    background: #f8fafc !important;
+    color: #3b82f6 !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    border-top: 1px solid #e2e8f0;
+    transition: background-color 0.2s;
+}
+a.selector-chooseall:hover, 
+a.selector-clearall:hover {
+    background: #e0f2fe !important;
+}

@@ -103,28 +103,46 @@ def server_metric_history(request, metric_type):
     return render(request, 'admin/network/auditlog/metric_history.html', context)
     
 def server_metric_history_api(request, metric_type):
-    # Fetch 7 days of data
     end_date = timezone.now()
     start_date = end_date - timedelta(days=7)
     
-    metrics = ServerMetric.objects.filter(timestamp__range=(start_date, end_date)).order_by('timestamp')
+    metrics = list(ServerMetric.objects.filter(timestamp__range=(start_date, end_date)).order_by('timestamp'))
     
-    data = []
-    for m in metrics:
-        timestamp_ms = int(m.timestamp.timestamp() * 1000)
-        if metric_type == 'cpu':
-            val = m.cpu_percent
-        elif metric_type == 'memory':
-            val = m.memory_percent
-        elif metric_type == 'disk':
-            val = m.disk_percent
-        elif metric_type == 'network':
-            # It's a bit complex to show raw bytes in a time series because it goes up continuously.
-            # But let's just send the raw bytes, or perhaps calculate the rate?
-            # For simplicity, we just send bytes_sent + bytes_recv and let frontend handle it.
-            val = m.net_bytes_sent + m.net_bytes_recv
-        else:
-            val = 0
-        data.append([timestamp_ms, val])
-        
-    return JsonResponse({'data': data})
+    if metric_type == 'network':
+        data_sent = []
+        data_recv = []
+        for i in range(1, len(metrics)):
+            prev = metrics[i-1]
+            curr = metrics[i]
+            
+            dt = (curr.timestamp - prev.timestamp).total_seconds()
+            if dt <= 0: continue
+            
+            sent_diff = curr.net_bytes_sent - prev.net_bytes_sent
+            recv_diff = curr.net_bytes_recv - prev.net_bytes_recv
+            
+            if sent_diff < 0: sent_diff = curr.net_bytes_sent
+            if recv_diff < 0: recv_diff = curr.net_bytes_recv
+            
+            sent_mbps = (sent_diff * 8) / (dt * 1000000)
+            recv_mbps = (recv_diff * 8) / (dt * 1000000)
+            
+            timestamp_ms = int(curr.timestamp.timestamp() * 1000)
+            data_sent.append([timestamp_ms, round(sent_mbps, 2)])
+            data_recv.append([timestamp_ms, round(recv_mbps, 2)])
+            
+        return JsonResponse({'data_sent': data_sent, 'data_recv': data_recv})
+    else:
+        data = []
+        for m in metrics:
+            timestamp_ms = int(m.timestamp.timestamp() * 1000)
+            if metric_type == 'cpu':
+                val = m.cpu_percent
+            elif metric_type == 'memory':
+                val = m.memory_percent
+            elif metric_type == 'disk':
+                val = m.disk_percent
+            else:
+                val = 0
+            data.append([timestamp_ms, val])
+        return JsonResponse({'data': data})
