@@ -34,7 +34,57 @@ def register_view(request):
         requester_group, _ = Group.objects.get_or_create(name='Requester')
         user.groups.add(requester_group)
         
-        messages.success(request, "Registration successful! You can now log in.")
-        return redirect('admin:login')
+        return render(request, 'admin/register_success.html')
         
     return render(request, 'admin/register.html')
+
+import psutil
+from django.http import JsonResponse
+
+def server_stats_api(request):
+    # CPU
+    cpu_usage = psutil.cpu_percent(interval=None)
+    
+    # Memory
+    mem = psutil.virtual_memory()
+    def format_bytes(b):
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if b < 1024.0:
+                return f"{b:.2f} {unit}"
+            b /= 1024.0
+        return f"{b:.2f} PB"
+    
+    mem_total_str = format_bytes(mem.total)
+    mem_used_str = format_bytes(mem.used)
+    mem_percent = mem.percent
+    
+    # Disk
+    disks = []
+    for part in psutil.disk_partitions(all=False):
+        try:
+            usage = psutil.disk_usage(part.mountpoint)
+            disks.append({
+                'mountpoint': part.mountpoint,
+                'percent': usage.percent,
+                'total': format_bytes(usage.total),
+                'used': format_bytes(usage.used)
+            })
+        except Exception:
+            pass
+            
+    # Network
+    net_io = psutil.net_io_counters()
+    net = {
+        'bytes_sent': net_io.bytes_sent,
+        'bytes_recv': net_io.bytes_recv
+    }
+    
+    return JsonResponse({
+        'cpu': cpu_usage,
+        'memory': {
+            'percent': mem_percent,
+            'text': f"{mem_used_str} / {mem_total_str}"
+        },
+        'disk': disks,
+        'network': net
+    })

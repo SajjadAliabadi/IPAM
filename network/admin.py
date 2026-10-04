@@ -416,6 +416,13 @@ class IPAddressAdmin(admin.ModelAdmin):
             from django.contrib import messages
             messages.success(request, "All 'New' badges have been cleared successfully.")
             
+        if obj.clear_monitoring_logs:
+            from network.models import AuditLog
+            count, _ = AuditLog.objects.all().delete()
+            obj.clear_monitoring_logs = False
+            from django.contrib import messages
+            messages.success(request, f"Successfully cleared {count} monitoring logs.")
+            
         super().save_model(request, obj, form, change)
 
     def has_add_permission(self, request):
@@ -804,6 +811,7 @@ class IPRequestAdmin(admin.ModelAdmin):
 from .models import AuditLog
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
+    change_list_template = "admin/network/auditlog/change_list.html"
     class Media:
         js = ('js/audit_banner.js',)
     list_display = ('timestamp', 'action_badge', 'model_name', 'user_display', 'message')
@@ -844,6 +852,13 @@ class AuditLogAdmin(admin.ModelAdmin):
             from django.contrib import messages
             messages.success(request, "All 'New' badges have been cleared successfully.")
             
+        if obj.clear_monitoring_logs:
+            from network.models import AuditLog
+            count, _ = AuditLog.objects.all().delete()
+            obj.clear_monitoring_logs = False
+            from django.contrib import messages
+            messages.success(request, f"Successfully cleared {count} monitoring logs.")
+            
         super().save_model(request, obj, form, change)
 
     def has_add_permission(self, request):
@@ -867,7 +882,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             'fields': ('theme', 'custom_logo')
         }),
         ('Automation & Provisioning', {
-            'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours', 'new_ip_duration_hours', 'clear_all_new_ips'),
+            'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours', 'new_ip_duration_hours', 'clear_all_new_ips', 'monitoring_retention_days', 'clear_monitoring_logs'),
             'description': 'Manage background automation, timeouts, and IP status behaviors.'
         }),
         ('Time Synchronization', {
@@ -926,7 +941,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 'description': 'Configure Telegram Bot API to receive real-time IPAM alerts.'
             }),
             ('Automation & Provisioning', {
-                'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours', 'new_ip_duration_hours', 'clear_all_new_ips'),
+                'fields': ('auto_assign_ips', 'enable_reservation', 'reservation_timeout_hours', 'offline_timeout_hours', 'new_ip_duration_hours', 'clear_all_new_ips', 'monitoring_retention_days', 'clear_monitoring_logs'),
                 'description': 'Configure automatic IP allocation, recycling, and reservation settings.'
             }),
             ('System Time', {
@@ -946,6 +961,13 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             obj.clear_all_new_ips = False
             from django.contrib import messages
             messages.success(request, "All 'New' badges have been cleared successfully.")
+            
+        if obj.clear_monitoring_logs:
+            from network.models import AuditLog
+            count, _ = AuditLog.objects.all().delete()
+            obj.clear_monitoring_logs = False
+            from django.contrib import messages
+            messages.success(request, f"Successfully cleared {count} monitoring logs.")
             
         super().save_model(request, obj, form, change)
 
@@ -1008,6 +1030,9 @@ class CustomUserAdmin(UserAdmin):
         css = {
             'all': ('css/hide_password_text.css',)
         }
+    
+    readonly_fields = ('last_login', 'date_joined')
+
     def get_fieldsets(self, request, obj=None):
         if not obj:
             return self.add_fieldsets

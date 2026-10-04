@@ -23,5 +23,6 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('register/', network_views.register_view, name='register'),
+    path('api/server-stats/', network_views.server_stats_api, name='server_stats_api'),
     path('admin/', admin.site.urls),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

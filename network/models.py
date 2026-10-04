@@ -75,6 +75,9 @@ class SystemSettings(models.Model):
     new_ip_duration_hours = models.IntegerField(default=24, verbose_name="New IP Badge Duration (Hours)", help_text="How long an IP retains the 'New' badge after discovery.")
     clear_all_new_ips = models.BooleanField(default=False, verbose_name="Clear All 'New' Badges", help_text="Check this box and save to instantly clear the 'New' status from all current IPs.")
     
+    monitoring_retention_days = models.IntegerField(default=30, verbose_name="Monitoring Logs Retention (Days)", help_text="Number of days to keep audit logs before they are auto-deleted.")
+    clear_monitoring_logs = models.BooleanField(default=False, verbose_name="Clear All Monitoring Logs", help_text="Check this box and save to instantly delete ALL monitoring (audit) logs.")
+    
     telegram_bot_token = models.CharField(max_length=255, null=True, blank=True, verbose_name="Telegram Bot Token", help_text="Get this from @BotFather")
     telegram_chat_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="Telegram Chat/Group ID")
     alert_on_subnet_full = models.BooleanField(default=True, verbose_name="Alert when subnet is >90% full")
