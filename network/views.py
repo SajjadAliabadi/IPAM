@@ -96,8 +96,8 @@ from django.utils import timezone
 from datetime import timedelta
 
 def server_metric_history(request, metric_type):
-    from django.contrib.admin.sites import site
-    context = site.eachcontext(request)
+    from django.contrib import admin
+    context = admin.site.each_context(request)
     context['metric_type'] = metric_type
     context['title'] = f"{metric_type.title()} Usage History"
     return render(request, 'admin/network/auditlog/metric_history.html', context)
