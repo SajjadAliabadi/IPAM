@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 echo "=========================================="
 echo " IPAM Enterprise - Update Script"
 echo "=========================================="
