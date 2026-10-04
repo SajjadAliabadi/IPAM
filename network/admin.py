@@ -310,16 +310,52 @@ class IPAddressAdmin(admin.ModelAdmin):
             'SSH': {'name': 'Secure Shell (SSH)', 'icon': 'fa-terminal', 'color': '#64748b', 'open': False, 'desc': 'Port 22 / TCP'},
             'HTTP': {'name': 'Web Service (HTTP)', 'icon': 'fa-globe', 'color': '#64748b', 'open': False, 'desc': 'Port 80 / TCP'},
             'HTTPS': {'name': 'Secure Web (HTTPS)', 'icon': 'fa-lock', 'color': '#64748b', 'open': False, 'desc': 'Port 443 / TCP'},
-            'RDP': {'name': 'Remote Desktop (RDP)', 'icon': 'fa-desktop', 'color': '#64748b', 'open': False, 'desc': 'Port 3389 / TCP'},
-            'Custom': {'name': 'Custom Services', 'icon': 'fa-layer-group', 'color': '#64748b', 'open': False, 'desc': 'Other detected ports'},
+            'RDP': {'name': 'Remote Desktop (RDP)', 'icon': 'fa-desktop', 'color': '#64748b', 'open': False, 'desc': 'Port 3389 / TCP'}
         }
         
-        if 'Ping' in reason or 'ICMP' in reason: ports['ICMP_Ping']['open'] = True
-        if 'Port 22' in reason or 'SSH' in reason: ports['SSH']['open'] = True
-        if 'Port 80' in reason or ('HTTP' in reason and 'HTTPS' not in reason): ports['HTTP']['open'] = True
-        if 'Port 443' in reason or 'HTTPS' in reason: ports['HTTPS']['open'] = True
-        if 'Port 3389' in reason or 'RDP' in reason: ports['RDP']['open'] = True
-        if 'Custom' in reason or 'Port 4141' in reason or 'API' in reason: ports['Custom']['open'] = True
+        reason_parts = [r.strip() for r in reason.split('|') if r.strip()]
+        has_custom = False
+        
+        for part in reason_parts:
+            part_lower = part.lower()
+            if 'ping' in part_lower or 'icmp' in part_lower:
+                ports['ICMP_Ping']['open'] = True
+            elif 'port 22' in part_lower or part_lower == 'ssh':
+                ports['SSH']['open'] = True
+            elif 'port 80' in part_lower or (part_lower == 'http' and 'https' not in part_lower):
+                ports['HTTP']['open'] = True
+            elif 'port 443' in part_lower or 'https' in part_lower:
+                ports['HTTPS']['open'] = True
+            elif 'port 3389' in part_lower or 'rdp' in part_lower:
+                ports['RDP']['open'] = True
+            elif 'manually' not in part_lower and 'reservation' not in part_lower and 'last seen' not in part_lower:
+                # It is a custom port or service
+                import re as regex
+                has_custom = True
+                clean_part = part.replace('Detected via ', '')
+                port_match = regex.search(r'\(Port (\d+)\)', clean_part, regex.IGNORECASE)
+                
+                # If name already contains "(Port X)", use it as name, else append
+                name_clean = regex.sub(r'\s*\(Port \d+\)', '', clean_part).strip()
+                desc = f"Port {port_match.group(1)} / TCP" if port_match else "Custom Service detected"
+                
+                ports[f"Custom_{clean_part}"] = {
+                    'name': name_clean,
+                    'icon': 'fa-layer-group',
+                    'color': '#64748b',
+                    'open': True,
+                    'desc': desc
+                }
+                
+        if not has_custom:
+            # If no custom ports were found open, show a generic closed one just to keep the grid even
+            ports['Generic_Custom'] = {
+                'name': 'Custom Services',
+                'icon': 'fa-layer-group',
+                'color': '#64748b',
+                'open': False,
+                'desc': 'No other ports detected'
+            }
 
         html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; padding: 5px;">'
         
