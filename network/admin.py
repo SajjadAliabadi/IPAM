@@ -159,7 +159,9 @@ class SubnetAdmin(ImportExportActionModelAdmin):
             'description': 'Configure automatic IP allocation specifically for this subnet.'
         }),
     )
+
     def get_urls(self):
+
         from django.urls import path
         urls = super().get_urls()
         custom_urls = [
@@ -257,7 +259,7 @@ class IsNewIPFilter(SimpleListFilter):
 @admin.register(IPAddress)
 class IPAddressAdmin(admin.ModelAdmin):
     class Media:
-        js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js')
+        js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js', 'js/ip_status_modal.js')
         
     form = IPAddressForm
     list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'mac_address', 'os_name', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
@@ -266,10 +268,10 @@ class IPAddressAdmin(admin.ModelAdmin):
     list_filter = ('status', 'subnet', IsNewIPFilter)
     ordering = ('ip_address_padded',)
     
-    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name', 'discovery_reason_display')
+    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name', 'discovery_reason_display', 'status_with_action')
     fieldsets = (
         ('IP Configuration', {
-            'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'os_name', 'status', 'discovery_reason_display')
+            'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'os_name', 'status_with_action', 'discovery_reason_display')
         }),
         ('Port Analysis', {
             'fields': ('port_graph',),
@@ -526,6 +528,62 @@ class IPAddressAdmin(admin.ModelAdmin):
             return ('ip_address',) + base_ro
         return base_ro
         
+    def change_status_modal_view(self, request, object_id):
+        from django.shortcuts import get_object_or_404
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        from django.contrib import messages
+        from django.utils import timezone
+        
+        obj = get_object_or_404(self.model, pk=object_id)
+        
+        if request.method == 'POST':
+            new_status = request.POST.get('status')
+            hostname = request.POST.get('hostname')
+            mac_address = request.POST.get('mac_address')
+            os_name = request.POST.get('os_name')
+            reason = request.POST.get('discovery_reason')
+            
+            obj.status = new_status
+            obj.hostname = hostname
+            obj.mac_address = mac_address
+            obj.os_name = os_name
+            obj.discovery_reason = reason
+            
+            if new_status == 'reserved':
+                obj.reserved_at = timezone.now()
+            elif new_status == 'used':
+                if not obj.discovery_reason or obj.discovery_reason.strip() == '':
+                    obj.discovery_reason = f"Manually assigned by {request.user.username}"
+            
+            obj.save()
+            messages.success(request, f"Successfully updated IP {obj.ip_address} details.")
+            
+        return HttpResponseRedirect(reverse('admin:network_ipaddress_change', args=[object_id]))
+
+    @admin.display(description='Status & Actions')
+    def status_with_action(self, obj):
+        from django.utils.safestring import mark_safe
+        status_colors = {
+            'available': ('#10b981', '#d1fae5'),
+            'used': ('#ef4444', '#fee2e2'),
+            'reserved': ('#f59e0b', '#fef3c7'),
+            'offline': ('#64748b', '#f1f5f9'),
+        }
+        color, bg = status_colors.get(obj.status, ('#64748b', '#f1f5f9'))
+        label = dict(obj.STATUS_CHOICES).get(obj.status, obj.status)
+        
+        def esc(s):
+            return str(s).replace("'", "\\'") if s else ""
+            
+        html = f'''
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="background: {bg}; color: {color}; border: 1px solid {color}40; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px;">{label}</span>
+            <button type="button" onclick="openStatusModal({obj.id}, \'{obj.ip_address}\', \'{obj.status}\', \'{esc(obj.hostname)}\', \'{esc(obj.mac_address)}\', \'{esc(obj.os_name)}\', \'{esc(obj.discovery_reason)}\')" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; font-weight: 600; padding: 6px 14px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);"><i class="fas fa-edit" style="margin-right: 6px;"></i> Change Details</button>
+        </div>
+        '''
+        return mark_safe(html)
+
     def get_urls(self):
         from django.urls import path
         urls = super().get_urls()
@@ -533,6 +591,7 @@ class IPAddressAdmin(admin.ModelAdmin):
             path('api/check-hostname/', self.admin_site.admin_view(self.check_hostname_api), name='network_ipaddress_check_hostname'),
             path('<int:ip_id>/clear/', self.admin_site.admin_view(self.clear_ip_view), name='clear-ip'),
             path('<int:ip_id>/quick-check/', self.admin_site.admin_view(self.quick_check_view), name='quick-check-ip'),
+            path('<int:object_id>/change-status-modal/', self.admin_site.admin_view(self.change_status_modal_view), name='ipaddress_change_status_modal'),
         ]
         return custom_urls + urls
 
