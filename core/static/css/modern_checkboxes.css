@@ -1,36 +1,49 @@
 ﻿/* Modern Checkbox Select Multiple for Check Methods */
+
+/* Container wrapping the whole widget (checkboxes + green plus) */
 .field-check_methods .related-widget-wrapper {
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
 }
 
-.field-check_methods ul {
-    list-style: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+/* Container holding the list of checkboxes */
+.field-check_methods ul,
+.field-check_methods div[id^="id_check_methods"] {
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 12px !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
 }
 
-.field-check_methods ul li {
+/* Individual wrapper for each checkbox (Django sometimes uses li, sometimes div) */
+.field-check_methods ul li,
+.field-check_methods div[id^="id_check_methods"] > div {
+    display: inline-flex !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
+/* The actual pill label */
 .modern-pill-label {
     display: inline-flex !important;
     align-items: center;
-    padding: 10px 18px !important;
+    padding: 6px 12px !important; /* Smaller size */
     background: #f8fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px; /* Pill */
     color: #475569;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 12px !important; /* Smaller text */
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
     margin: 0 !important;
+    white-space: nowrap !important;
 }
 
 .modern-pill-label:hover {
@@ -39,8 +52,8 @@
 }
 
 .modern-pill-label .check-icon {
-    font-size: 13px;
-    margin-right: 8px;
+    font-size: 11px;
+    margin-right: 6px;
     opacity: 0;
     transform: scale(0.5);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -54,11 +67,19 @@
     background: #eff6ff !important;
     border-color: #3b82f6 !important;
     color: #2563eb !important;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.15), 0 2px 4px -1px rgba(59, 130, 246, 0.1) !important;
+    box-shadow: 0 2px 4px -1px rgba(59, 130, 246, 0.1) !important;
+    font-weight: 600 !important;
 }
 
 .modern-pill-label.is-checked .check-icon {
     opacity: 1;
     transform: scale(1);
-    width: 14px;
+    width: 12px;
+}
+
+/* The green plus icon */
+.field-check_methods .related-widget-wrapper-link {
+    margin: 0 0 0 5px !important;
+    display: inline-flex !important;
+    align-items: center !important;
 }
