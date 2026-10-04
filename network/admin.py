@@ -270,6 +270,10 @@ class IPAddressAdmin(admin.ModelAdmin):
         ('IP Configuration', {
             'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'status', 'discovery_reason')
         }),
+        ('Port Analysis', {
+            'fields': ('port_graph',),
+            'description': 'Visual representation of open ports detected during the last scan.'
+        }),
         ('Timeline & Tracking', {
             'fields': ('first_seen', 'last_seen', 'last_checked', 'reserved_at')
         }),
@@ -471,9 +475,10 @@ class IPAddressAdmin(admin.ModelAdmin):
     vlan_display.short_description = 'VLAN'
         
     def get_readonly_fields(self, request, obj=None):
+        base_ro = ('subnet', 'vlan_display', 'discovery_reason', 'last_checked', 'status', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
         if obj:
-            return ('ip_address', 'subnet', 'vlan_display', 'discovery_reason', 'last_checked', 'status')
-        return ('subnet', 'vlan_display', 'discovery_reason', 'last_checked', 'status')
+            return ('ip_address',) + base_ro
+        return base_ro
         
     def get_urls(self):
         from django.urls import path

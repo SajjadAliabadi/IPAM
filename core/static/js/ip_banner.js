@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const ipInput = document.getElementById('id_ip_address') || document.querySelector('.field-ip_address .readonly');
     const statusSelect = document.getElementById('id_status');
 
@@ -24,7 +24,7 @@
                     let icon = 'fa-check-circle';
                     let statusText = 'Available';
                     
-                    if (status.includes('used')) {
+                    if (status.includes('used') || status.includes('in use')) {
                         bg = 'linear-gradient(135deg, #dc2626, #ef4444)'; 
                         icon = 'fa-server';
                         statusText = 'In Use';
@@ -32,6 +32,10 @@
                         bg = 'linear-gradient(135deg, #4b5563, #6b7280)'; 
                         icon = 'fa-power-off';
                         statusText = 'Offline';
+                    } else if (status.includes('reserved')) {
+                        bg = 'linear-gradient(135deg, #ca8a04, #eab308)'; 
+                        icon = 'fa-lock';
+                        statusText = 'Reserved';
                     }
 
                     banner.innerHTML = '<div style="background: ' + bg + '; color: white; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px; transition: all 0.3s ease;">' +
