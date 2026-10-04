@@ -98,15 +98,25 @@
 </div>
 
 
-<div style="margin-bottom: 30px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-    <form method="GET" action="" style="margin: 0; display: flex; align-items: center; gap: 15px;">
-        <div style="flex-grow: 1; position: relative;">
-            <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem; z-index: 10;"></i>
-            <input type="text" name="q" placeholder="Global IP Search... (e.g. 192.168.1.10, hostname, or mac address)" style="width: 100%; padding: 14px 20px 14px 45px !important; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 1.1rem; color: #334155; transition: border-color 0.2s; position: relative; z-index: 5;" onfocus="this.style.borderColor='#3b82f6'; this.style.outline='none';" onblur="this.style.borderColor='#e2e8f0';">
+<div style="margin-bottom: 40px; position: relative; max-width: 800px; margin-left: auto; margin-right: auto;">
+    <form method="GET" action="" style="margin: 0; width: 100%;">
+        <div style="position: relative; width: 100%; display: flex; align-items: center;">
+            <i class="fas fa-filter" style="position: absolute; left: 24px; color: #94a3b8; font-size: 1.2rem; z-index: 10;"></i>
+            
+            <input type="text" id="subnet-filter-input" name="q" 
+                   placeholder="Type to filter subnets instantly... or press Enter for Global IP Search" 
+                   autocomplete="off"
+                   style="width: 100%; padding: 18px 75px 18px 60px !important; border-radius: 50px; border: 2px solid #e2e8f0; font-size: 1.1rem; color: #1e293b; background: white; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);" 
+                   onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 10px 30px -5px rgba(59, 130, 246, 0.2)'; this.style.outline='none';" 
+                   onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 10px 25px -5px rgba(0,0,0,0.05)';">
+                   
+            <button type="submit" title="Global IP Search" 
+                    style="position: absolute; right: 12px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; color: white; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);" 
+                    onmouseover="this.style.transform='scale(1.08)';" 
+                    onmouseout="this.style.transform='scale(1)';">
+                <i class="fas fa-search" style="font-size: 1rem;"></i>
+            </button>
         </div>
-        <button type="submit" class="btn btn-primary" style="padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; background: #3b82f6; border: none; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);">
-            Search
-        </button>
     </form>
 </div>
 <div class="row">
@@ -189,6 +199,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('subnet-filter-input');
+    const subnetCols = document.querySelectorAll('.col-12.col-md-6.col-lg-4'); // The bootstrap columns holding the cards
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const query = this.value.toLowerCase().trim();
+            
+            subnetCols.forEach(col => {
+                const card = col.querySelector('.subnet-card');
+                if (card) {
+                    const textContent = card.innerText.toLowerCase();
+                    if (textContent.includes(query)) {
+                        col.style.display = ''; // Show
+                    } else {
+                        col.style.display = 'none'; // Hide
+                    }
+                }
+            });
+        });
+    }
 });
 </script>
 {% endblock %}
