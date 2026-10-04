@@ -259,16 +259,16 @@ class IPAddressAdmin(admin.ModelAdmin):
         js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js')
         
     form = IPAddressForm
-    list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
-    search_fields = ('ip_address', 'mac_address', 'hostname')
+    list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'mac_address', 'os_name', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
+    search_fields = ('ip_address', 'mac_address', 'hostname', 'os_name')
     list_display_links = ('ip_address_display',)
     list_filter = ('status', 'subnet', IsNewIPFilter)
     ordering = ('ip_address_padded',)
     
-    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at')
+    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name')
     fieldsets = (
         ('IP Configuration', {
-            'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'status', 'discovery_reason')
+            'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'os_name', 'status', 'discovery_reason')
         }),
         ('Port Analysis', {
             'fields': ('port_graph',),

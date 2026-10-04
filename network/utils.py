@@ -15,19 +15,53 @@ def check_port(ip, port, timeout=0.5):
     except:
         return False
 
-def ping_host(ip_str):
-    import platform, subprocess
+def get_mac_address(ip_str):
+    import platform, subprocess, re
+    if platform.system().lower() == 'windows':
+        try:
+            output = subprocess.check_output(['arp', '-a', ip_str], text=True)
+            match = re.search(r"([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})", output)
+            if match:
+                mac = match.group(0).replace('-', ':').upper()
+                if mac != '00:00:00:00:00:00': return mac
+        except Exception: pass
+    else:
+        try:
+            with open('/proc/net/arp', 'r') as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) >= 4 and parts[0] == ip_str:
+                        mac = parts[3].upper()
+                        if mac != '00:00:00:00:00:00': return mac
+        except Exception: pass
+    return None
+
+def ping_host_ext(ip_str):
+    import platform, subprocess, re
+    is_online = False
+    os_name = None
     try:
         if platform.system().lower() == 'windows':
-            output = subprocess.run(['ping', '-n', '1', '-w', '200', ip_str], capture_output=True, timeout=2)
+            output = subprocess.run(['ping', '-n', '1', '-w', '500', ip_str], capture_output=True, text=True, timeout=2)
         else:
-            # -c 1 is universally supported. We use python's timeout to enforce limits safely.
-            output = subprocess.run(['ping', '-c', '1', ip_str], capture_output=True, timeout=2)
-        return output.returncode == 0
-    except subprocess.TimeoutExpired:
-        return False
+            output = subprocess.run(['ping', '-c', '1', '-W', '1', ip_str], capture_output=True, text=True, timeout=2)
+            
+        is_online = (output.returncode == 0)
+        
+        if is_online:
+            match = re.search(r'(?i)ttl=(\d+)', output.stdout)
+            if match:
+                ttl = int(match.group(1))
+                if ttl <= 64: os_name = "Linux / Unix / macOS"
+                elif ttl <= 128: os_name = "Windows"
+                elif ttl <= 255: os_name = "Cisco / Network Device"
     except Exception:
-        return False
+        pass
+    return is_online, os_name
+
+def ping_host(ip_str):
+    is_online, _ = ping_host_ext(ip_str)
+    return is_online
 
 def run_custom_script(ip_str, script_content):
     local_env = {'ip_address': ip_str, 'result_status': 'available', 'subprocess': subprocess, 'socket': socket}
@@ -43,15 +77,19 @@ def scan_single_host(ip_str, methods):
     final_status = 'available'
     reasons = []
     
+    # Always attempt ping to gather OS Fingerprint & check ARP table for MAC
+    ping_online, os_name = ping_host_ext(ip_str)
+    mac_address = get_mac_address(ip_str)
+    
     if not methods:
-        if ping_host(ip_str):
+        if ping_online:
             final_status = 'used'
             reasons.append('ICMP Ping')
     else:
         for method in methods:
             is_used = False
             if method.protocol == 'icmp':
-                is_used = ping_host(ip_str)
+                is_used = ping_online
             elif method.protocol == 'http':
                 is_used = check_port(ip_str, 80)
             elif method.protocol == 'https':
@@ -75,7 +113,7 @@ def scan_single_host(ip_str, methods):
                     reasons.append(f"{method.name}")
                 
     reason = " | ".join(reasons) if reasons else ""
-    return ip_str, final_status, reason
+    return ip_str, final_status, reason, os_name, mac_address
 
 def perform_discovery(subnets_queryset):
     settings = SystemSettings.load()
@@ -98,17 +136,26 @@ def perform_discovery(subnets_queryset):
             for future in concurrent.futures.as_completed(futures):
                 results.append(future.result())
             
-        for ip_str, final_status, reason in results:
+        for ip_str, final_status, reason, os_name, mac_address in results:
+            defaults = {'subnet': subnet, 'status': final_status, 'discovery_reason': reason}
+            if os_name: defaults['os_name'] = os_name
+            if mac_address: defaults['mac_address'] = mac_address
             ip_obj, created = IPAddress.objects.get_or_create(
                 ip_address=ip_str,
-                defaults={'subnet': subnet, 'status': final_status, 'discovery_reason': reason}
+                defaults=defaults
             )
+            
+            # Update dynamically if changed
+            if os_name and ip_obj.os_name != os_name:
+                ip_obj.os_name = os_name
+            if mac_address and ip_obj.mac_address != mac_address:
+                ip_obj.mac_address = mac_address
             
             # Double verification before marking offline
             if final_status != 'used' and ip_obj.status == 'used':
                 import time
                 time.sleep(1)
-                _, retry_status, retry_reason = scan_single_host(ip_str, methods)
+                _, retry_status, retry_reason, _, _ = scan_single_host(ip_str, methods)
                 if retry_status == 'used':
                     final_status = 'used'
                     reason = retry_reason
@@ -189,7 +236,9 @@ def perform_ip_discovery(ips_queryset):
             methods = list(CheckMethod.objects.filter(is_active=True))
 
         ip_str = ip_obj.ip_address
-        _, final_status, reason = scan_single_host(ip_str, methods)
+        _, final_status, reason, os_name, mac_address = scan_single_host(ip_str, methods)
+        if os_name: ip_obj.os_name = os_name
+        if mac_address: ip_obj.mac_address = mac_address
 
         old_status = ip_obj.status
         
@@ -197,7 +246,7 @@ def perform_ip_discovery(ips_queryset):
         if final_status != 'used' and old_status == 'used':
             import time
             time.sleep(1)
-            _, retry_status, retry_reason = scan_single_host(ip_str, methods)
+            _, retry_status, retry_reason, _, _ = scan_single_host(ip_str, methods)
             if retry_status == 'used':
                 final_status = 'used'
                 reason = retry_reason
