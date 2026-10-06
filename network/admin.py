@@ -970,8 +970,18 @@ class IPRequestAdmin(admin.ModelAdmin):
     def auto_assign_api(self, request, request_id):
         import time, ipaddress
         from .models import IPAddress, AuditLog
-        time.sleep(3) 
+        from .utils import perform_discovery
+        
         req = IPRequest.objects.get(id=request_id)
+        
+        # Perform fresh scan of the subnet to prevent assigning stale IPs
+        if req.subnet:
+            try:
+                perform_discovery(req.subnet)
+            except Exception as e:
+                pass # Continue even if scan fails for some reason
+        
+        time.sleep(1) # Tiny pause for UX
         
         if not req.subnet.enable_auto_assign:
             from django.http import JsonResponse
