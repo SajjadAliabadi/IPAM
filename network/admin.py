@@ -173,6 +173,13 @@ class SubnetAdmin(ImportExportActionModelAdmin):
         from django.contrib import messages
         from django.http import HttpResponseRedirect
         from django.urls import reverse
+
+        if not request.user.has_perm('network.change_subnet'):
+            from django.contrib import messages
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            messages.error(request, "Permission Denied: You do not have permission to perform this action.")
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_subnet_changelist')))
         subnet = Subnet.objects.filter(id=subnet_id)
         if subnet.exists():
             perform_discovery(subnet)
@@ -261,6 +268,13 @@ class IPAddressAdmin(admin.ModelAdmin):
     class Media:
         js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js', 'js/ip_status_modal.js')
         
+
+    def get_list_display(self, request):
+        default = super().get_list_display(request)
+        if not (request.user.is_superuser or request.user.has_perm('network.change_ipaddress')):
+            return tuple(f for f in default if f != 'clear_ip_button')
+        return default
+
     form = IPAddressForm
     list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'mac_address', 'os_name', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
     search_fields = ('ip_address', 'mac_address', 'hostname', 'os_name')
@@ -534,6 +548,13 @@ class IPAddressAdmin(admin.ModelAdmin):
         from django.urls import reverse
         from django.contrib import messages
         from django.utils import timezone
+
+        if not request.user.has_perm('network.change_ipaddress'):
+            from django.contrib import messages
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            messages.error(request, "Permission Denied: You do not have permission to perform this action.")
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_ipaddress_changelist')))
         
         obj = get_object_or_404(self.model, pk=object_id)
         
@@ -604,6 +625,13 @@ class IPAddressAdmin(admin.ModelAdmin):
         from django.urls import reverse
         from .models import IPAddress
         from .utils import perform_ip_discovery
+
+        if not request.user.has_perm('network.change_ipaddress'):
+            from django.contrib import messages
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            messages.error(request, "Permission Denied: You do not have permission to perform this action.")
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_ipaddress_changelist')))
         
         ip = get_object_or_404(IPAddress, id=ip_id)
         if ip.status == 'offline':
@@ -624,6 +652,13 @@ class IPAddressAdmin(admin.ModelAdmin):
         from django.http import HttpResponseRedirect
         from django.contrib import messages
         from .models import IPAddress, AuditLog
+
+        if not request.user.has_perm('network.change_ipaddress'):
+            from django.contrib import messages
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            messages.error(request, "Permission Denied: You do not have permission to perform this action.")
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_ipaddress_changelist')))
         
         ip = get_object_or_404(IPAddress, id=ip_id)
         if ip.status != 'available':
@@ -993,6 +1028,13 @@ class SystemSettingsAdmin(admin.ModelAdmin):
 
     def clear_badges_view(self, request):
         from network.models import IPAddress
+
+        if not request.user.has_perm('network.change_systemsettings'):
+            from django.contrib import messages
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            messages.error(request, "Permission Denied: You do not have permission to perform this action.")
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_systemsettings_changelist')))
         import datetime
         from django.utils import timezone
         from django.contrib import messages
@@ -1007,6 +1049,13 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         from django.contrib import messages
         from django.http import HttpResponseRedirect
         from django.urls import reverse
+
+        if not request.user.has_perm('network.change_systemsettings'):
+            from django.contrib import messages
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            messages.error(request, "Permission Denied: You do not have permission to perform this action.")
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_systemsettings_changelist')))
         count, _ = AuditLog.objects.all().delete()
         messages.success(request, f"Successfully cleared {count} monitoring logs.")
         return HttpResponseRedirect(reverse('admin:network_systemsettings_change', args=[1]))
