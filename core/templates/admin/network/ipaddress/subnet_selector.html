@@ -183,7 +183,14 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(this.href)
                 .then(response => {
                     if (response.ok) {
-                        window.location.reload();
+                        const searchInput = document.getElementById('subnet-filter-input');
+                        if (searchInput && searchInput.value) {
+                            const url = new URL(window.location.href);
+                            url.searchParams.set('q', searchInput.value);
+                            window.location.href = url.toString();
+                        } else {
+                            window.location.reload();
+                        }
                     } else {
                         alert('Scan failed or timed out.');
                         this.innerHTML = originalHtml;
@@ -207,6 +214,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const subnetCols = document.querySelectorAll('.col-12.col-md-6.col-lg-4'); // The bootstrap columns holding the cards
 
     if (searchInput) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('q')) {
+            searchInput.value = urlParams.get('q');
+            setTimeout(() => searchInput.dispatchEvent(new Event('input')), 50);
+        }
+        
         searchInput.addEventListener('input', function(e) {
             const query = this.value.toLowerCase().trim();
             
