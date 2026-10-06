@@ -184,7 +184,7 @@ class SubnetAdmin(ImportExportActionModelAdmin):
         if subnet.exists():
             perform_discovery(subnet)
             messages.success(request, f"Discovery scan completed for {subnet.first().network_address}.")
-        return HttpResponseRedirect(reverse('admin:network_ipaddress_changelist'))
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_subnet_changelist')))
 
     class Media:
         js = (

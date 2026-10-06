@@ -32,11 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     let icon = 'fa-check-circle';
                     let statusText = 'Available';
                     
-                    if (status.includes('used') || status.includes('in use')) {
-                        bg = 'linear-gradient(135deg, #dc2626, #ef4444)'; 
-                        icon = 'fa-server';
-                        statusText = 'In Use';
-                    } else if (status.includes('offline')) {
+                    if (status.includes('offline')) {
                         bg = 'linear-gradient(135deg, #4b5563, #6b7280)'; 
                         icon = 'fa-power-off';
                         statusText = 'Offline';
@@ -44,6 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         bg = 'linear-gradient(135deg, #ca8a04, #eab308)'; 
                         icon = 'fa-lock';
                         statusText = 'Reserved';
+                    } else if (status.includes('used') || status.includes('in use')) {
+                        bg = 'linear-gradient(135deg, #dc2626, #ef4444)'; 
+                        icon = 'fa-server';
+                        statusText = 'In Use';
                     }
 
                     // Extract actual IP address from ipText (it might have "Ip address:\n192.168.1.1")
