@@ -155,7 +155,7 @@
                         Never scanned
                     {% endif %}
                 </span>
-                <a href="{% url 'admin:network_subnet_scan' stat.obj.id %}" class="btn-scan-subnet" style="font-size: 13px; background: #f1f5f9; color: #3b82f6; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                <a href="{% url 'admin:network_subnet_scan' stat.obj.id %}" data-id="{{ stat.obj.id }}" class="btn-scan-subnet" style="font-size: 13px; background: #f1f5f9; color: #3b82f6; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
                     <i class="fas fa-sync-alt"></i> Scan Subnet
                 </a>
             </div>
@@ -172,42 +172,59 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const scanBtns = document.querySelectorAll('.btn-scan-subnet');
-    scanBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const originalHtml = this.innerHTML;
-            this.innerHTML = 'Scanning...';
-            this.style.pointerEvents = 'none';
-            this.style.opacity = '0.7';
-            
-            fetch(this.href)
-                .then(response => {
-                    if (response.ok) {
-                        const searchInput = document.getElementById('subnet-filter-input');
-                        if (searchInput && searchInput.value) {
-                            const url = new URL(window.location.href);
-                            url.searchParams.set('q', searchInput.value);
-                            window.location.href = url.toString();
-                        } else {
-                            window.location.reload();
+    
+    function scanHandler(e) {
+        e.preventDefault();
+        const originalHtml = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+        this.style.pointerEvents = 'none';
+        this.style.opacity = '0.7';
+        
+        const subnetId = this.getAttribute('data-id');
+        fetch(this.href)
+            .then(response => {
+                if (!response.ok) throw new Error('Scan failed');
+                return response.text();
+            })
+            .then(html => {
+                if (subnetId) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newCard = doc.getElementById('subnet-card-' + subnetId);
+                    const oldCard = document.getElementById('subnet-card-' + subnetId);
+                    if (newCard && oldCard) {
+                        oldCard.innerHTML = newCard.innerHTML;
+                        // Re-attach the event listener to the NEW button
+                        const newBtn = oldCard.querySelector('.btn-scan-subnet');
+                        if (newBtn) {
+                            newBtn.addEventListener('click', scanHandler);
                         }
-                    } else {
-                        alert('Scan failed or timed out.');
-                        this.innerHTML = originalHtml;
-                        this.style.pointerEvents = 'auto';
-                        this.style.opacity = '1';
+                        return;
                     }
-                })
-                .catch(err => {
-                    alert('Network error during scan.');
-                    this.innerHTML = originalHtml;
-                    this.style.pointerEvents = 'auto';
-                    this.style.opacity = '1';
-                });
-        });
+                }
+                
+                // Fallback
+                const searchInput = document.getElementById('subnet-filter-input');
+                if (searchInput && searchInput.value) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('q', searchInput.value);
+                    window.location.href = url.toString();
+                } else {
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                alert('Scan failed or network error.');
+                this.innerHTML = originalHtml;
+                this.style.pointerEvents = 'auto';
+                this.style.opacity = '1';
+            });
+    }
+
+    scanBtns.forEach(btn => {
+        btn.addEventListener('click', scanHandler);
     });
-});
-</script>
+  </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('subnet-filter-input');
