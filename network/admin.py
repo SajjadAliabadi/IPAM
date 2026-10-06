@@ -269,6 +269,26 @@ class IPAddressAdmin(admin.ModelAdmin):
         js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js', 'js/ip_status_modal.js')
         
 
+
+    def get_fieldsets(self, request, obj=None):
+        if not request.user.has_perm('network.change_ipaddress'):
+            return (
+                ('IP Configuration', {
+                    'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'os_name', 'status_badge_only', 'discovery_reason_display')
+                }),
+                ('Port Analysis', {
+                    'fields': ('port_graph',),
+                    'description': 'Visual representation of open ports detected during the last scan.'
+                }),
+                ('Timeline & Tracking', {
+                    'fields': ('first_seen', 'last_seen', 'last_checked', 'reserved_at')
+                }),
+                ('Additional Info', {
+                    'fields': ('assigned_to', 'description')
+                }),
+            )
+        return super().get_fieldsets(request, obj)
+
     def get_list_display(self, request):
         default = super().get_list_display(request)
         if not (request.user.is_superuser or request.user.has_perm('network.change_ipaddress')):
@@ -282,7 +302,7 @@ class IPAddressAdmin(admin.ModelAdmin):
     list_filter = ('status', 'subnet', IsNewIPFilter)
     ordering = ('ip_address_padded',)
     
-    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name', 'discovery_reason_display', 'status_with_action')
+    readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name', 'discovery_reason_display', 'status_with_action', 'status_badge_only')
     fieldsets = (
         ('IP Configuration', {
             'fields': ('ip_address', 'subnet', 'vlan_display', 'hostname', 'is_unique_hostname', 'mac_address', 'os_name', 'status_with_action', 'discovery_reason_display')
@@ -537,7 +557,10 @@ class IPAddressAdmin(admin.ModelAdmin):
     vlan_display.short_description = 'VLAN'
         
     def get_readonly_fields(self, request, obj=None):
-        base_ro = ('subnet', 'vlan_display', 'discovery_reason_display', 'last_checked', 'status_with_action', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
+        if not request.user.has_perm('network.change_ipaddress'):
+            base_ro = ('subnet', 'vlan_display', 'discovery_reason_display', 'last_checked', 'status_badge_only', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
+        else:
+            base_ro = ('subnet', 'vlan_display', 'discovery_reason_display', 'last_checked', 'status_with_action', 'first_seen', 'last_seen', 'reserved_at', 'port_graph')
         if obj:
             return ('ip_address',) + base_ro
         return base_ro
@@ -582,7 +605,22 @@ class IPAddressAdmin(admin.ModelAdmin):
             
         return HttpResponseRedirect(reverse('admin:network_ipaddress_change', args=[object_id]))
 
+
+    @admin.display(description='Status')
+    def status_badge_only(self, obj):
+        from django.utils.safestring import mark_safe
+        status_colors = {
+            'available': ('#10b981', '#d1fae5'),
+            'used': ('#ef4444', '#fee2e2'),
+            'reserved': ('#f59e0b', '#fef3c7'),
+            'offline': ('#64748b', '#f1f5f9'),
+        }
+        color, bg = status_colors.get(obj.status, ('#64748b', '#f1f5f9'))
+        label = dict(obj.STATUS_CHOICES).get(obj.status, obj.status)
+        return mark_safe(f'<span style="background: {bg}; color: {color}; border: 1px solid {color}40; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px;">{label}</span>')
+
     @admin.display(description='Status & Actions')
+
     def status_with_action(self, obj):
         from django.utils.safestring import mark_safe
         status_colors = {
