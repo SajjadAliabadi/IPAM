@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
 
 {% block content %}
 <style>
@@ -39,18 +40,49 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         border: 1px solid #e2e8f0;
         margin-top: 20px;
-        max-width: 500px;
+        max-width: 550px;
         width: 100%;
     }
     .ip-display {
         font-size: 32px;
         font-weight: bold;
         color: #10b981;
-        margin: 20px 0;
+        margin: 20px 0 10px;
         padding: 15px;
         background: #f0fdf4;
         border-radius: 8px;
         letter-spacing: 1px;
+    }
+    .network-details {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+        text-align: left;
+    }
+    .net-box {
+        background: white;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+    }
+    .net-title {
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        display: block;
+    }
+    .net-val {
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 14px;
     }
     .btn-return {
         display: inline-block;
@@ -60,7 +92,8 @@
         text-decoration: none;
         border-radius: 6px;
         font-weight: 600;
-        margin-top: 20px;
+        margin-top: 5px;
+        transition: background 0.2s;
     }
     .btn-return:hover { background: #2563eb; color: #fff; }
 </style>
@@ -73,17 +106,29 @@
     </div>
     
     <div id="resultUI" class="result-box">
-        <div id="resultIcon" style="font-size: 48px; margin-bottom: 15px;">✅</div>
+        <div id="resultIcon" style="font-size: 55px; margin-bottom: 15px;"></div>
         <div id="resultTitle" class="status-text">Request Approved Successfully!</div>
         <div id="resultDesc" class="sub-text">The following IP address has been assigned to your hostname:</div>
+        
         <div id="ipAddress" class="ip-display">--.--.--.--</div>
+        
+        <div id="networkDetails" class="network-details">
+            <div class="net-box">
+                <span class="net-title">Gateway</span>
+                <span id="gatewayVal" class="net-val">--</span>
+            </div>
+            <div class="net-box">
+                <span class="net-title">Subnet Network</span>
+                <span id="networkVal" class="net-val">--</span>
+            </div>
+        </div>
+
         <a href="{% url 'admin:network_iprequest_changelist' %}" class="btn-return">Return to Requests List</a>
     </div>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Trigger the auto-assign API
         fetch("{% url 'admin:network_iprequest_auto_assign' req.id %}")
             .then(response => response.json())
             .then(data => {
@@ -91,9 +136,16 @@
                 document.getElementById('resultUI').style.display = 'block';
                 
                 if (data.status === 'success') {
+                    document.getElementById('resultIcon').innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i>';
                     document.getElementById('ipAddress').textContent = data.ip;
+                    
+                    if (data.gateway || data.network) {
+                        document.getElementById('networkDetails').style.display = 'grid';
+                        document.getElementById('gatewayVal').textContent = data.gateway || 'Not Configured';
+                        document.getElementById('networkVal').textContent = data.network || 'N/A';
+                    }
                 } else {
-                    document.getElementById('resultIcon').textContent = '⚠️';
+                    document.getElementById('resultIcon').innerHTML = '<i class="fas fa-hourglass-half" style="color: #f59e0b;"></i>';
                     document.getElementById('resultTitle').textContent = 'Pending Admin Approval';
                     document.getElementById('resultDesc').textContent = data.message;
                     document.getElementById('ipAddress').style.display = 'none';
@@ -102,7 +154,7 @@
             .catch(error => {
                 document.getElementById('loadingUI').style.display = 'none';
                 document.getElementById('resultUI').style.display = 'block';
-                document.getElementById('resultIcon').textContent = '❌';
+                document.getElementById('resultIcon').innerHTML = '<i class="fas fa-times-circle" style="color: #ef4444;"></i>';
                 document.getElementById('resultTitle').textContent = 'System Error';
                 document.getElementById('resultDesc').textContent = 'An error occurred while communicating with the server.';
                 document.getElementById('ipAddress').style.display = 'none';

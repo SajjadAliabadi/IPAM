@@ -812,7 +812,12 @@ class IPRequestForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'subnet' in self.fields:
-            self.fields['subnet'].label_from_instance = lambda obj: f"{obj.network_address} ({obj.name})" if obj.enable_auto_assign else f"❌ {obj.network_address} ({obj.name}) - AUTO-ASSIGN DISABLED"
+            from .models import SystemSettings
+            settings = SystemSettings.load()
+            if settings.auto_assign_ips:
+                self.fields['subnet'].label_from_instance = lambda obj: f'{obj.network_address} ({obj.name})' if obj.enable_auto_assign else f'❌ {obj.network_address} ({obj.name}) - AUTO-ASSIGN DISABLED'
+            else:
+                self.fields['subnet'].label_from_instance = lambda obj: f"{obj.network_address} ({obj.name})"
 
     def clean(self):
         cleaned_data = super().clean()
@@ -833,6 +838,25 @@ class IPRequestAdmin(admin.ModelAdmin):
     list_filter = ('status', 'subnet', 'requested_at')
     search_fields = ('user__username', 'hostname', 'reason')
 
+
+    @admin.display(description='Network Information')
+    def network_details(self, obj):
+        from django.utils.safestring import mark_safe
+        if obj.status == 'approved' and obj.subnet and obj.assigned_ip:
+            gw = obj.subnet.gateway or 'Not Configured'
+            net = obj.subnet.network_address
+            return mark_safe(f'''
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px; margin-top: 5px;">
+                <h4 style="margin-top: 0; color: #166534; font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;"><i class="fas fa-network-wired"></i> Assigned Network Details</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #dcfce7;"><strong style="color: #15803d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Assigned IP Address</strong><span style="color: #166534; font-weight: 700; font-size: 15px;">{obj.assigned_ip.ip_address}</span></div>
+                    <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #dcfce7;"><strong style="color: #15803d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Gateway</strong><span style="color: #166534; font-weight: 700; font-size: 15px;">{gw}</span></div>
+                    <div style="background: white; padding: 10px; border-radius: 6px; border: 1px solid #dcfce7; grid-column: 1 / -1;"><strong style="color: #15803d; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Subnet Network</strong><span style="color: #166534; font-weight: 700; font-size: 15px;">{net}</span></div>
+                </div>
+            </div>
+            ''')
+        return "Network details will be provided here once the request is approved."
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser or request.user.groups.filter(name__in=['Administrator', 'Manager', 'Operator', 'ReadOnly']).exists() or request.user.has_perm('network.change_iprequest'):
@@ -840,7 +864,7 @@ class IPRequestAdmin(admin.ModelAdmin):
         return qs.filter(user=request.user)
 
     def get_readonly_fields(self, request, obj=None):
-        base_readonly = ['requested_at', 'client_ip', 'user_agent', 'user_total_requests']
+        base_readonly = ['requested_at', 'client_ip', 'user_agent', 'user_total_requests', 'network_details']
         if not (request.user.is_superuser or request.user.groups.filter(name__in=['Administrator', 'Manager', 'Operator']).exists() or request.user.has_perm('network.change_iprequest')):
             if obj:
                 return base_readonly + ['status', 'assigned_ip', 'admin_comment']
@@ -857,13 +881,13 @@ class IPRequestAdmin(admin.ModelAdmin):
         if request.user.is_superuser or request.user.groups.filter(name='Network Operators').exists():
             return (
                 ('Request Details', {'fields': ('requested_at', 'client_ip', 'user_agent', 'user', 'user_total_requests')}),
-                ('Admin Action', {'fields': ('subnet', 'hostname', 'reason', 'status', 'assigned_ip', 'admin_comment')}),
+                ('Admin Action', {'fields': ('subnet', 'hostname', 'reason', 'status', 'assigned_ip', 'admin_comment', 'network_details')}),
             )
         else:
             if obj:
                 return (
                     ('IP Request', {'fields': ('subnet', 'hostname', 'reason')}),
-                    ('Admin Response', {'fields': ('status', 'assigned_ip', 'admin_comment')}),
+                    ('Admin Response', {'fields': ('status', 'assigned_ip', 'admin_comment', 'network_details')}),
                 )
             return (
                 ('IP Request', {'fields': ('subnet', 'hostname', 'reason')}),
@@ -998,7 +1022,12 @@ class IPRequestAdmin(admin.ModelAdmin):
             
             AuditLog.objects.create(user=request.user, action='ASSIGN', model_name='IPAddress', message=f"Auto-assigned {available_ip.ip_address} to {req.hostname}")
             
-            return JsonResponse({'status': 'success', 'ip': available_ip.ip_address})
+            return JsonResponse({
+                'status': 'success', 
+                'ip': available_ip.ip_address,
+                'gateway': available_ip.subnet.gateway or 'Not Configured',
+                'network': available_ip.subnet.network_address
+            })
         else:
             req.admin_comment = "Auto-assignment failed: No available IPs in subnet or range."
             req.save()
