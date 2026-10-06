@@ -32,7 +32,10 @@
                     return;
                 }
                 
-                let html = '<h4 style="margin-top:0; font-size:16px; color:#334155; font-weight:600; margin-bottom: 15px;"><i class="fas fa-network-wired" style="margin-right:8px; opacity:0.7;"></i> Visual IP Map</h4>';
+                let subnetBadge = data.subnet_info ? '<span style="background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 12px; letter-spacing: 0.5px; font-weight:normal; margin-left: 10px;"><i class="fas fa-network-wired" style="margin-right:5px;"></i>' + data.subnet_info + '</span>' : '';
+                let html = '<h4 style="margin-top:0; font-size:16px; color:#334155; font-weight:600; margin-bottom: 15px; display:flex; align-items:center; justify-content:space-between;">' + 
+                    '<span><i class="fas fa-network-wired" style="margin-right:8px; opacity:0.7;"></i> Visual IP Map</span>' + 
+                    subnetBadge + '</h4>';
                 html += '<div style="display: flex; flex-wrap: wrap; gap: 6px;">';
                 
                 let showTwoOctets = data.ips.length > 256;

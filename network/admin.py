@@ -951,10 +951,12 @@ class IPRequestAdmin(admin.ModelAdmin):
 
     def subnet_map_api(self, request, subnet_id):
         from django.http import JsonResponse
-        from .models import IPAddress
+        from .models import IPAddress, Subnet
         ips = IPAddress.objects.filter(subnet_id=subnet_id).order_by('ip_address_padded')
         data = [{'id': ip.id, 'ip': ip.ip_address, 'status': ip.status} for ip in ips]
-        return JsonResponse({'ips': data})
+        subnet = Subnet.objects.filter(id=subnet_id).first()
+        subnet_info = f"{subnet.network_address} ({subnet.name})" if subnet else ""
+        return JsonResponse({'ips': data, 'subnet_info': subnet_info})
 
     
     def pending_count_api(self, request):
