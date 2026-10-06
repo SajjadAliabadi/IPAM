@@ -33,13 +33,41 @@
             targetContainer.appendChild(mapContainer);
         }
 
-        function loadMap(subnetId) {
+        function loadMap(subnetId, bypassScan = false) {
             if (!subnetId) {
                 mapContainer.innerHTML = '';
+                if (assignedIpSelect) assignedIpSelect.disabled = false;
                 return;
             }
             
-            mapContainer.innerHTML = '<div style="text-align: center; color: #64748b;"><i class="fas fa-spinner fa-spin"></i> Loading IP map...</div>';
+            if (!bypassScan) {
+                if (assignedIpSelect) assignedIpSelect.disabled = true;
+                
+                mapContainer.innerHTML = '<div style="text-align: center; padding: 30px 20px;">' +
+                    '<h4 style="margin-top:0; font-size:16px; color:#1e293b; font-weight:700;"><i class="fas fa-shield-alt" style="margin-right:8px; color: #3b82f6;"></i> Fresh Scan Required</h4>' +
+                    '<p style="color: #64748b; margin-bottom: 25px; font-size: 14px;">To minimize IP conflict risks, a fresh subnet scan is required before manual IP assignment.</p>' +
+                    '<button id="runScanBtn" type="button" class="btn btn-primary" style="padding: 10px 24px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);"><i class="fas fa-search" style="margin-right: 8px;"></i> Scan Subnet Now</button>' +
+                    '</div>';
+                    
+                document.getElementById('runScanBtn').onclick = function() {
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Scanning Subnet (Please Wait)...';
+                    this.disabled = true;
+                    
+                    fetch('/admin/network/subnet/' + subnetId + '/scan/')
+                        .then(res => {
+                            if (assignedIpSelect) assignedIpSelect.disabled = false;
+                            loadMap(subnetId, true);
+                        })
+                        .catch(err => {
+                            alert("Failed to scan subnet.");
+                            if (assignedIpSelect) assignedIpSelect.disabled = false;
+                            loadMap(subnetId, true);
+                        });
+                };
+                return;
+            }
+            
+            mapContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading updated IP map...</div>';
             
             fetch('/admin/network/iprequest/api/subnet-map/' + subnetId + '/')
                 .then(r => r.json())

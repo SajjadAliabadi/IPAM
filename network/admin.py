@@ -864,7 +864,7 @@ class IPRequestAdmin(admin.ModelAdmin):
         return qs.filter(user=request.user)
 
     def get_readonly_fields(self, request, obj=None):
-        base_readonly = ['requested_at', 'client_ip', 'user_agent', 'user_total_requests', 'network_details']
+        base_readonly = ['user', 'requested_at', 'client_ip', 'user_agent', 'user_total_requests', 'network_details']
         if not (request.user.is_superuser or request.user.groups.filter(name__in=['Administrator', 'Manager', 'Operator']).exists() or request.user.has_perm('network.change_iprequest')):
             if obj:
                 return base_readonly + ['status', 'assigned_ip', 'admin_comment']
@@ -896,7 +896,7 @@ class IPRequestAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         from django.utils import timezone
         if not obj.pk:
-            if not (request.user.is_superuser or request.user.groups.filter(name__in=['Administrator', 'Manager', 'Operator']).exists() or request.user.has_perm('network.change_iprequest')):
+            if not getattr(obj, 'user', None):
                 obj.user = request.user
             x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
             if x_forwarded_for:
