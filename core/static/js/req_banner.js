@@ -77,7 +77,13 @@
                         return;
                     }
                     
-                    let html = '<h4 style="margin-top:0; font-size:16px; color:#334155; font-weight:600;"><i class="fas fa-th" style="margin-right:8px; opacity:0.7;"></i> Visual IP Map (Click an Available IP to select it)</h4>';
+                    const selectedText = subnetSelect.options[subnetSelect.selectedIndex] ? subnetSelect.options[subnetSelect.selectedIndex].text : '';
+                    let cleanText = selectedText.replace('❌ ', '').replace(' - AUTO-ASSIGN DISABLED', '');
+                    
+                    let html = '<h4 style="margin-top:0; font-size:16px; color:#334155; font-weight:600; display:flex; align-items:center; justify-content:space-between;">' +
+                        '<span><i class="fas fa-th" style="margin-right:8px; opacity:0.7;"></i> Visual IP Map <span style="font-size:13px; color:#64748b; font-weight:normal;">(Click an Available IP to select it)</span></span>' +
+                        '<span style="background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 12px; letter-spacing: 0.5px;"><i class="fas fa-network-wired" style="margin-right:5px;"></i>' + cleanText + '</span>' +
+                        '</h4>';
                     html += '<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 15px;">';
                     
                     let showTwoOctets = data.ips.length > 256;
