@@ -118,6 +118,7 @@
                     html += '<div style="margin-top: 15px; display: flex; gap: 15px; font-size: 12px; color: #64748b;">';
                     html += '<div style="display:flex; align-items:center; gap:5px;"><div style="width:12px;height:12px;background:#10b981;border-radius:2px;"></div> Available</div>';
                     html += '<div style="display:flex; align-items:center; gap:5px;"><div style="width:12px;height:12px;background:#ef4444;border-radius:2px;"></div> In Use</div>';
+                    html += '<div style=\"display:flex; align-items:center; gap:5px;\"><div style=\"width:12px;height:12px;background:#f59e0b;border-radius:2px;\"></div> Reserved</div>';
                     html += '<div style="display:flex; align-items:center; gap:5px;"><div style="width:12px;height:12px;background:#6b7280;border-radius:2px;"></div> Offline</div>';
                     html += '</div>';
                     
