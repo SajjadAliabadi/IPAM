@@ -812,12 +812,22 @@ class IPRequestForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'subnet' in self.fields:
-            from .models import SystemSettings
+            from .models import SystemSettings, IPAddress
+            from django.db.models import Q
             settings = SystemSettings.load()
             if settings.auto_assign_ips:
                 self.fields['subnet'].label_from_instance = lambda obj: f'{obj.network_address} ({obj.name})' if obj.enable_auto_assign else f'❌ {obj.network_address} ({obj.name}) - AUTO-ASSIGN DISABLED'
             else:
                 self.fields['subnet'].label_from_instance = lambda obj: f"{obj.network_address} ({obj.name})"
+                
+        if 'assigned_ip' in self.fields:
+            from .models import IPAddress
+            from django.db.models import Q
+            # Only allow selecting Available IPs, OR the currently assigned IP
+            if self.instance and self.instance.assigned_ip_id:
+                self.fields['assigned_ip'].queryset = IPAddress.objects.filter(Q(status='available') | Q(id=self.instance.assigned_ip_id)).order_by('ip_address_padded')
+            else:
+                self.fields['assigned_ip'].queryset = IPAddress.objects.filter(status='available').order_by('ip_address_padded')
 
     def clean(self):
         cleaned_data = super().clean()
