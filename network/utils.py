@@ -255,7 +255,8 @@ def perform_ip_discovery(ips_queryset):
             methods = list(CheckMethod.objects.filter(is_active=True))
 
         ip_str = ip_obj.ip_address
-        _, final_status, reason, os_name, mac_address = scan_single_host(ip_str, methods)
+        _, final_status, reason, os_name, mac_address, open_ports_str = scan_single_host(ip_str, methods)
+        ip_obj.open_ports = open_ports_str
         if os_name: ip_obj.os_name = os_name
         if mac_address: ip_obj.mac_address = mac_address
 
@@ -265,7 +266,7 @@ def perform_ip_discovery(ips_queryset):
         if final_status != 'used' and old_status == 'used':
             import time
             time.sleep(1)
-            _, retry_status, retry_reason, _, _ = scan_single_host(ip_str, methods)
+            _, retry_status, retry_reason, _, _, _ = scan_single_host(ip_str, methods)
             if retry_status == 'used':
                 final_status = 'used'
                 reason = retry_reason
