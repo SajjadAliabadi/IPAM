@@ -1,0 +1,36 @@
+﻿{% load i18n %}
+<div class="filter-check-methods" style="padding: 15px; border-bottom: 1px solid #eaeaea; margin-bottom: 10px;">
+    <h3 style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">
+        {% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}
+    </h3>
+    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto;">
+        {% for choice in choices %}
+            {% if choice.display != "All" %}
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; cursor: pointer; margin: 0; font-weight: 400;">
+                    <input type="checkbox" class="method-checkbox" value="{{ choice.display }}" {% if choice.display in spec.value %}checked{% endif %} style="cursor: pointer;">
+                    {{ choice.display }}
+                </label>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <div style="margin-top: 15px;">
+        <button type="button" class="btn btn-sm btn-primary" onclick="applyMethodFilter()" style="width: 100%; border-radius: 6px; font-weight: 600;">Apply Filter</button>
+    </div>
+</div>
+<script>
+function applyMethodFilter() {
+    var checkboxes = document.querySelectorAll('.method-checkbox:checked');
+    var selected = [];
+    checkboxes.forEach(function(cb) {
+        selected.push(cb.value);
+    });
+    
+    var url = new URL(window.location.href);
+    if (selected.length > 0) {
+        url.searchParams.set('{{ spec.parameter_name }}', selected.join(','));
+    } else {
+        url.searchParams.delete('{{ spec.parameter_name }}');
+    }
+    window.location.href = url.toString();
+}
+</script>

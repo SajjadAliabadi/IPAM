@@ -264,24 +264,34 @@ class IsNewIPFilter(SimpleListFilter):
         return queryset
 
 
-class OpenPortsFilter(admin.SimpleListFilter):
-    title = 'Open Ports'
-    parameter_name = 'open_ports'
-    template = 'admin/network/ipaddress/open_ports_filter.html'
+class DiscoveryMethodFilter(admin.SimpleListFilter):
+    title = 'Discovery Methods'
+    parameter_name = 'discovery_method'
+    template = 'admin/network/ipaddress/check_method_filter.html'
 
     def lookups(self, request, model_admin):
-        return (('dummy', 'dummy'),)
+        from .models import CheckMethod
+        methods = CheckMethod.objects.all().order_by('name')
+        lookups = [(m.name, m.name) for m in methods]
+        lookups.insert(0, ('ICMP Ping', 'ICMP Ping'))
+        unique_lookups = []
+        seen = set()
+        for k, v in lookups:
+            if k not in seen:
+                seen.add(k)
+                unique_lookups.append((k, v))
+        return tuple(unique_lookups)
 
     def queryset(self, request, queryset):
         val = self.value()
         if val:
-            ports = val.split(',')
             from django.db.models import Q
+            methods = val.split(',')
             q = Q()
-            for p in ports:
-                p = p.strip()
-                if p:
-                    q |= Q(open_ports__exact=p) | Q(open_ports__startswith=f'{p},') | Q(open_ports__endswith=f',{p}') | Q(open_ports__contains=f',{p},')
+            for m in methods:
+                m = m.strip()
+                if m:
+                    q |= Q(discovery_reason__icontains=m)
             return queryset.filter(q)
         return queryset
 
@@ -311,21 +321,6 @@ class IPAddressAdmin(admin.ModelAdmin):
             )
         return super().get_fieldsets(request, obj)
 
-
-    @admin.display(description='Open Ports', ordering='open_ports')
-    def open_ports_badge(self, obj):
-        if not obj.open_ports:
-            return "-"
-        from django.utils.html import format_html
-        ports = obj.open_ports.split(',')
-        html = '<div style="display: flex; gap: 4px; flex-wrap: wrap;">'
-        for p in ports:
-            p = p.strip()
-            if p:
-                html += f'<span style="background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">{p}</span>'
-        html += '</div>'
-        return format_html(html)
-
     def get_list_display(self, request):
         default = super().get_list_display(request)
         if not (request.user.is_superuser or request.user.has_perm('network.change_ipaddress')):
@@ -333,10 +328,10 @@ class IPAddressAdmin(admin.ModelAdmin):
         return default
 
     form = IPAddressForm
-    list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'mac_address', 'os_name', 'open_ports_badge', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
+    list_display = ('ip_address_display', 'hostname', 'subnet', 'vlan_id_display', 'status_badge', 'mac_address', 'os_name', 'usage_reason', 'first_seen', 'last_seen', 'clear_ip_button')
     search_fields = ('ip_address', 'mac_address', 'hostname', 'os_name')
     list_display_links = ('ip_address_display',)
-    list_filter = ('status', 'subnet', OpenPortsFilter, IsNewIPFilter)
+    list_filter = ('status', 'subnet', DiscoveryMethodFilter, IsNewIPFilter)
     ordering = ('ip_address_padded',)
     
     readonly_fields = ('last_checked', 'first_seen', 'last_seen', 'vlan_display', 'reserved_at', 'os_name', 'discovery_reason_display', 'status_with_action', 'status_badge_only')
@@ -516,7 +511,8 @@ class IPAddressAdmin(admin.ModelAdmin):
         elif obj.status == 'offline':
             return mark_safe(f'<span style="color: #94a3b8; font-style: italic;">{obj.discovery_reason or "Offline"}</span>')
         return "-"
-    usage_reason.short_description = "Usage Reason"
+    usage_reason.short_description = "Open Ports / Methods"
+    usage_reason.admin_order_field = "discovery_reason"
 
     def save_model(self, request, obj, form, change):
         from .models import SystemSettings, IPAddress
