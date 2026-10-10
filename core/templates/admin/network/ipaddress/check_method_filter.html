@@ -1,14 +1,12 @@
 ﻿{% load i18n %}
 <div class="form-group" style="margin-right: 15px; position: relative;">
     <div class="dropdown">
-        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenuMethods" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="background: #ffffff; border: 1px solid #ced4da; color: #495057; border-radius: 4px; padding: 4px 12px; font-size: 13px; height: 31px; display: flex; align-items: center; justify-content: space-between; min-width: 200px;">
+        <button class="btn btn-default" type="button" id="dropdownMenuMethodsBtn" style="background: #ffffff; border: 1px solid #ced4da; color: #495057; border-radius: 4px; padding: 4px 12px; font-size: 13px; height: 31px; display: flex; align-items: center; justify-content: space-between; min-width: 200px; cursor: pointer;">
             <span id="method-filter-btn-text">Filter Methods...</span>
+            <i class="fas fa-caret-down" style="margin-left: 10px; color: #6c757d;"></i>
         </button>
-        <div class="dropdown-menu shadow-sm" aria-labelledby="dropdownMenuMethods" style="width: 250px; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 5px;" onclick="event.stopPropagation();">
-            
-            <!-- Contains / Does not contain tabs (optional, keeping it simple as per Fortigate screenshot) -->
+        <div class="dropdown-menu shadow-sm" id="dropdownMenuMethodsContent" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1000; background: white; width: 250px; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 5px;">
             <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 8px; text-transform: uppercase;">Select Methods</div>
-            
             <div style="max-height: 200px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #f3f4f6; border-radius: 4px; padding: 5px;">
                 {% for choice in choices %}
                     {% if choice.display != "All" %}
@@ -19,7 +17,6 @@
                     {% endif %}
                 {% endfor %}
             </div>
-            
             <button type="button" class="btn btn-sm btn-success" onclick="applyFortiMethodFilter()" style="width: 100%; border-radius: 4px; font-weight: 600; background: #4caf50; border-color: #4caf50;">Apply</button>
         </div>
     </div>
@@ -27,6 +24,26 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var btn = document.getElementById('dropdownMenuMethodsBtn');
+    var menu = document.getElementById('dropdownMenuMethodsContent');
+    
+    // Toggle menu
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (menu.style.display === 'none' || menu.style.display === '') {
+            menu.style.display = 'block';
+        } else {
+            menu.style.display = 'none';
+        }
+    });
+    
+    // Close when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!menu.contains(e.target) && e.target !== btn) {
+            menu.style.display = 'none';
+        }
+    });
+
     var checkboxes = document.querySelectorAll('.method-forti-checkbox:checked');
     var btnText = document.getElementById('method-filter-btn-text');
     if (checkboxes.length > 0) {

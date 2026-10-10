@@ -552,6 +552,8 @@ class IPAddressAdmin(admin.ModelAdmin):
             return mark_safe('<span style="background: #f1f5f9; color: #475569; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-power-off" style="font-size: 11px;"></i> Offline</span>')
         elif obj.status == 'reserved':
             return mark_safe('<span style="background: #fef9c3; color: #854d0e; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-lock" style="font-size: 11px;"></i> Reserved</span>')
+        elif obj.status == 'static':
+            return mark_safe('<span style="background: #ede9fe; color: #6d28d9; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-thumbtack" style="font-size: 11px;"></i> Static</span>')
         return obj.get_status_display()
 
     @admin.display(ordering='ip_address_padded', description='IP Address')
@@ -647,6 +649,7 @@ class IPAddressAdmin(admin.ModelAdmin):
             'used': ('#ef4444', '#fee2e2'),
             'reserved': ('#f59e0b', '#fef3c7'),
             'offline': ('#64748b', '#f1f5f9'),
+            'static': ('#8b5cf6', '#ede9fe'),
         }
         color, bg = status_colors.get(obj.status, ('#64748b', '#f1f5f9'))
         label = dict(obj.STATUS_CHOICES).get(obj.status, obj.status)
@@ -661,6 +664,7 @@ class IPAddressAdmin(admin.ModelAdmin):
             'used': ('#ef4444', '#fee2e2'),
             'reserved': ('#f59e0b', '#fef3c7'),
             'offline': ('#64748b', '#f1f5f9'),
+            'static': ('#8b5cf6', '#ede9fe'),
         }
         color, bg = status_colors.get(obj.status, ('#64748b', '#f1f5f9'))
         label = dict(obj.STATUS_CHOICES).get(obj.status, obj.status)
