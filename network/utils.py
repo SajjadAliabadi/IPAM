@@ -76,6 +76,7 @@ def run_custom_script(ip_str, script_content):
 def scan_single_host(ip_str, methods):
     final_status = 'available'
     reasons = []
+    open_ports_list = []
     
     # Always attempt ping to gather OS Fingerprint & check ARP table for MAC
     ping_online, os_name = ping_host_ext(ip_str)
@@ -107,13 +108,20 @@ def scan_single_host(ip_str, methods):
                 final_status = 'used'
                 if method.protocol == 'tcp_port':
                     reasons.append(f"{method.name} (Port {method.custom_port})")
+                    if method.custom_port: open_ports_list.append(str(method.custom_port))
                 elif method.protocol == 'icmp':
                     reasons.append(method.name)
                 else:
                     reasons.append(f"{method.name}")
+                    
+                if method.protocol == 'http': open_ports_list.append('80')
+                elif method.protocol == 'https': open_ports_list.append('443')
+                elif method.protocol == 'ssh': open_ports_list.append('22')
+                elif method.protocol == 'ftp': open_ports_list.append('21')
                 
     reason = " | ".join(reasons) if reasons else ""
-    return ip_str, final_status, reason, os_name, mac_address
+    open_ports_str = ",".join(sorted(list(set(open_ports_list))))
+    return ip_str, final_status, reason, os_name, mac_address, open_ports_str
 
 def perform_discovery(subnets_queryset):
     settings = SystemSettings.load()
@@ -136,8 +144,8 @@ def perform_discovery(subnets_queryset):
             for future in concurrent.futures.as_completed(futures):
                 results.append(future.result())
             
-        for ip_str, final_status, reason, os_name, mac_address in results:
-            defaults = {'subnet': subnet, 'status': final_status, 'discovery_reason': reason}
+        for ip_str, final_status, reason, os_name, mac_address, open_ports_str in results:
+            defaults = {'subnet': subnet, 'status': final_status, 'discovery_reason': reason, 'open_ports': open_ports_str}
             if os_name: defaults['os_name'] = os_name
             if mac_address: defaults['mac_address'] = mac_address
             ip_obj, created = IPAddress.objects.get_or_create(
@@ -150,17 +158,28 @@ def perform_discovery(subnets_queryset):
                 ip_obj.os_name = os_name
             if mac_address and ip_obj.mac_address != mac_address:
                 ip_obj.mac_address = mac_address
+            if open_ports_str and ip_obj.open_ports != open_ports_str:
+                ip_obj.open_ports = open_ports_str
             
             # Double verification before marking offline
             if final_status != 'used' and ip_obj.status == 'used':
                 import time
                 time.sleep(1)
-                _, retry_status, retry_reason, _, _ = scan_single_host(ip_str, methods)
+                _, retry_status, retry_reason, _, _, _ = scan_single_host(ip_str, methods)
                 if retry_status == 'used':
                     final_status = 'used'
                     reason = retry_reason
         
             needs_save = False
+            if ip_obj.status == 'static':
+                # Skip status updates for Static IPs to prevent them from going offline!
+                if final_status == 'used':
+                    ip_obj.last_seen = timezone.now()
+                    ip_obj.discovery_reason = reason
+                if needs_save or (final_status == 'used'):
+                    ip_obj.save(update_fields=['os_name', 'mac_address', 'open_ports', 'last_seen', 'discovery_reason'] if final_status == 'used' else ['os_name', 'mac_address', 'open_ports'])
+                continue
+
             if final_status == 'used':
                 if not ip_obj.first_seen:
                     ip_obj.first_seen = timezone.now()

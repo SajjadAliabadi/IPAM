@@ -93,6 +93,9 @@
                         if (ip.status === 'used') {
                             color = '#ef4444';
                             cursor = 'not-allowed';
+                        } else if (ip.status === 'static') {
+                            color = '#8b5cf6';
+                            cursor = 'not-allowed';
                         } else if (ip.status === 'reserved') {
                             color = '#f59e0b';
                             cursor = 'not-allowed';

@@ -1,0 +1,28 @@
+﻿{% load i18n %}
+<div class="filter-open-ports" style="padding: 10px; border-bottom: 1px solid #eaeaea; margin-bottom: 10px;">
+    <h3 style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #334155;">
+        {% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}
+    </h3>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        <input type="text" id="open-ports-input" class="form-control form-control-sm" placeholder="e.g. 80, 443, 22" value="{{ spec.value|default_if_none:'' }}">
+        <button type="button" class="btn btn-sm btn-primary" onclick="applyPortsFilter()">Apply Filter</button>
+    </div>
+</div>
+<script>
+function applyPortsFilter() {
+    var val = document.getElementById('open-ports-input').value.trim();
+    var url = new URL(window.location.href);
+    if (val) {
+        url.searchParams.set('{{ spec.parameter_name }}', val);
+    } else {
+        url.searchParams.delete('{{ spec.parameter_name }}');
+    }
+    window.location.href = url.toString();
+}
+document.getElementById('open-ports-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        applyPortsFilter();
+    }
+});
+</script>

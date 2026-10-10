@@ -42,6 +42,7 @@
                 data.ips.forEach(ip => {
                     let color = '#10b981'; 
                     if (ip.status === 'used') { color = '#ef4444'; } 
+                    else if (ip.status === 'static') { color = '#8b5cf6'; } 
                     else if (ip.status === 'reserved') { color = '#f59e0b'; } 
                     else if (ip.status === 'offline') { color = '#64748b'; }
                     
@@ -59,6 +60,7 @@
                 html += '<div style="margin-top: 20px; display: flex; gap: 15px; font-size: 13px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 15px;">';
                 html += '<div style="display:flex; align-items:center; gap:6px;"><div style="width:14px;height:14px;background:#10b981;border-radius:3px;"></div> Available</div>';
                 html += '<div style="display:flex; align-items:center; gap:6px;"><div style="width:14px;height:14px;background:#ef4444;border-radius:3px;"></div> In Use</div>';
+                html += '<div style="display:flex; align-items:center; gap:6px;"><div style="width:14px;height:14px;background:#8b5cf6;border-radius:3px;"></div> Static</div>';
                 html += '<div style="display:flex; align-items:center; gap:6px;"><div style="width:14px;height:14px;background:#f59e0b;border-radius:3px;"></div> Reserved</div>';
                 html += '<div style="display:flex; align-items:center; gap:6px;"><div style="width:14px;height:14px;background:#64748b;border-radius:3px;"></div> Offline</div>';
                 html += '</div>';

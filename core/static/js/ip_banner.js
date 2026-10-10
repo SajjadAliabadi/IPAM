@@ -32,7 +32,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     let icon = 'fa-check-circle';
                     let statusText = 'Available';
                     
-                    if (status.includes('offline')) {
+                    if (status.includes('static')) {
+                        bg = 'linear-gradient(135deg, #7c3aed, #8b5cf6)'; 
+                        icon = 'fa-thumbtack';
+                        statusText = 'Static (Always In-Use)';
+                    } else if (status.includes('offline')) {
                         bg = 'linear-gradient(135deg, #4b5563, #6b7280)'; 
                         icon = 'fa-power-off';
                         statusText = 'Offline';

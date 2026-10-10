@@ -120,12 +120,14 @@ class IPAddress(models.Model):
         ('reserved', 'Reserved'),
         ('used', 'In Use'),
         ('offline', 'Offline (Was In Use)'),
+        ('static', 'Static (Always In-Use)'),
     )
     subnet = models.ForeignKey(Subnet, on_delete=models.CASCADE, related_name='ips')
     ip_address = models.GenericIPAddressField(unique=True)
     ip_address_padded = models.CharField(max_length=15, editable=False, db_index=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
     discovery_reason = models.CharField(max_length=255, blank=True, null=True, help_text="Method that detected this IP as in-use")
+    open_ports = models.CharField(max_length=255, blank=True, null=True, verbose_name="Open Ports", help_text="Comma-separated list of discovered open ports")
     hostname = models.CharField(max_length=255, blank=True, null=True, help_text="Hostname or Server Name associated with this IP")
     is_unique_hostname = models.BooleanField(default=False, verbose_name="Unique Hostname", help_text="Check this to prevent any other IP from using this hostname.")
     mac_address = models.CharField(max_length=17, blank=True, null=True, verbose_name="MAC Address")
