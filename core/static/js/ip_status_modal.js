@@ -31,6 +31,7 @@ function openStatusModal(ipId, ipAddress, currentStatus, hostname, mac, os, reas
                   <option value="available" ${currentStatus === 'available' ? 'selected' : ''}>Available</option>
                   <option value="reserved" ${currentStatus === 'reserved' ? 'selected' : ''}>Reserved</option>
                   <option value="used" ${currentStatus === 'used' ? 'selected' : ''}>In Use</option>
+                  <option value="static" ${currentStatus === 'static' ? 'selected' : ''}>Static (Always In-Use)</option>
                 </select>
               </div>
 
