@@ -286,12 +286,15 @@ class DiscoveryMethodFilter(admin.SimpleListFilter):
         val = self.value()
         if val:
             from django.db.models import Q
+            import re
             methods = val.split(',')
             q = Q()
             for m in methods:
                 m = m.strip()
                 if m:
-                    q |= Q(discovery_reason__icontains=m)
+                    # Match exact method name, handling optional "(Port X)" and " | " separators
+                    pattern = rf'(^| \| ){re.escape(m)}( \(Port \d+\))?( \| |$)'
+                    q |= Q(discovery_reason__iregex=pattern)
             return queryset.filter(q)
         return queryset
 
