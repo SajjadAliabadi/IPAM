@@ -298,7 +298,7 @@ class DiscoveryMethodFilter(admin.SimpleListFilter):
 @admin.register(IPAddress)
 class IPAddressAdmin(admin.ModelAdmin):
     class Media:
-        js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js', 'js/ip_status_modal.js')
+        js = ('js/ip_map.js', 'js/ip_status_confirm.js', 'js/check_unique_hostname.js', 'js/ip_banner.js', 'js/ip_status_modal_v2.js')
         
 
 

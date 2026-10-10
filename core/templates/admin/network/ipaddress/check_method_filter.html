@@ -1,57 +1,56 @@
 ﻿{% load i18n %}
-<div class="form-group" style="margin-right: 15px; min-width: 250px;">
-    <select id="discovery-method-select" class="form-control select2" multiple="multiple" data-placeholder="Filter by Check Methods..." style="width: 100%;">
-        {% for choice in choices %}
-            {% if choice.display != "All" %}
-                <option value="{{ choice.display }}" {% if choice.display in spec.value %}selected{% endif %}>{{ choice.display }}</option>
-            {% endif %}
-        {% endfor %}
-    </select>
+<div class="form-group" style="margin-right: 15px; position: relative;">
+    <div class="dropdown">
+        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenuMethods" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="background: #ffffff; border: 1px solid #ced4da; color: #495057; border-radius: 4px; padding: 4px 12px; font-size: 13px; height: 31px; display: flex; align-items: center; justify-content: space-between; min-width: 200px;">
+            <span id="method-filter-btn-text">Filter Methods...</span>
+        </button>
+        <div class="dropdown-menu shadow-sm" aria-labelledby="dropdownMenuMethods" style="width: 250px; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 5px;" onclick="event.stopPropagation();">
+            
+            <!-- Contains / Does not contain tabs (optional, keeping it simple as per Fortigate screenshot) -->
+            <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 8px; text-transform: uppercase;">Select Methods</div>
+            
+            <div style="max-height: 200px; overflow-y: auto; margin-bottom: 10px; border: 1px solid #f3f4f6; border-radius: 4px; padding: 5px;">
+                {% for choice in choices %}
+                    {% if choice.display != "All" %}
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; cursor: pointer; margin: 0; padding: 4px 5px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="method-forti-checkbox" value="{{ choice.display }}" {% if choice.display in spec.value %}checked{% endif %} style="cursor: pointer;">
+                            <i class="fas fa-desktop" style="color: #9ca3af; font-size: 11px;"></i> {{ choice.display }}
+                        </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            <button type="button" class="btn btn-sm btn-success" onclick="applyFortiMethodFilter()" style="width: 100%; border-radius: 4px; font-weight: 600; background: #4caf50; border-color: #4caf50;">Apply</button>
+        </div>
+    </div>
 </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Select2 if available (Jazzmin usually loads it)
-    var $select = null;
-    if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
-        $select = jQuery('#discovery-method-select').select2({
-            theme: 'bootstrap4',
-            placeholder: "Select Check Methods...",
-            allowClear: true
-        });
-        
-        $select.on('select2:close', function (e) {
-            applyMethodFilter();
-        });
-        $select.on('select2:unselect', function (e) {
-            applyMethodFilter();
-        });
-    } else {
-        // Fallback for native select
-        document.getElementById('discovery-method-select').addEventListener('change', function() {
-            applyMethodFilter();
-        });
-    }
-    
-    function applyMethodFilter() {
-        var el = document.getElementById('discovery-method-select');
-        var selected = [];
-        if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
-            selected = $select.val() || [];
+    var checkboxes = document.querySelectorAll('.method-forti-checkbox:checked');
+    var btnText = document.getElementById('method-filter-btn-text');
+    if (checkboxes.length > 0) {
+        if (checkboxes.length === 1) {
+            btnText.innerHTML = '<span style="color:#059669;font-weight:600;">' + checkboxes[0].value + '</span>';
         } else {
-            for (var i = 0; i < el.options.length; i++) {
-                if (el.options[i].selected) {
-                    selected.push(el.options[i].value);
-                }
-            }
+            btnText.innerHTML = '<span style="color:#059669;font-weight:600;">' + checkboxes.length + ' Methods Selected</span>';
         }
-        
-        var url = new URL(window.location.href);
-        if (selected.length > 0) {
-            url.searchParams.set('{{ spec.parameter_name }}', selected.join(','));
-        } else {
-            url.searchParams.delete('{{ spec.parameter_name }}');
-        }
-        window.location.href = url.toString();
     }
 });
+
+function applyFortiMethodFilter() {
+    var checkboxes = document.querySelectorAll('.method-forti-checkbox:checked');
+    var selected = [];
+    checkboxes.forEach(function(cb) {
+        selected.push(cb.value);
+    });
+    
+    var url = new URL(window.location.href);
+    if (selected.length > 0) {
+        url.searchParams.set('{{ spec.parameter_name }}', selected.join(','));
+    } else {
+        url.searchParams.delete('{{ spec.parameter_name }}');
+    }
+    window.location.href = url.toString();
+}
 </script>
