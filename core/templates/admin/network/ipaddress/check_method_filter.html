@@ -11,7 +11,7 @@
                 {% for choice in choices %}
                     {% if choice.display != "All" %}
                         <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; cursor: pointer; margin: 0; padding: 4px 5px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
-                            <input type="checkbox" class="method-forti-checkbox" value="{{ choice.display }}" {% if choice.display in spec.value %}checked{% endif %} style="cursor: pointer;">
+                            <input type="checkbox" class="method-forti-checkbox" value="{{ choice.display }}" style="cursor: pointer;">
                             <i class="fas fa-desktop" style="color: #9ca3af; font-size: 11px;"></i> {{ choice.display }}
                         </label>
                     {% endif %}
@@ -27,6 +27,25 @@ document.addEventListener('DOMContentLoaded', function() {
     var btn = document.getElementById('dropdownMenuMethodsBtn');
     var menu = document.getElementById('dropdownMenuMethodsContent');
     
+    // Exact match for checked status via JS instead of substring template match
+    var urlParams = new URLSearchParams(window.location.search);
+    var selectedVal = urlParams.get('{{ spec.parameter_name }}');
+    var selectedMethods = selectedVal ? selectedVal.split(',') : [];
+    
+    var allCheckboxes = document.querySelectorAll('.method-forti-checkbox');
+    var checkedCount = 0;
+    var firstCheckedValue = '';
+    
+    allCheckboxes.forEach(function(cb) {
+        if (selectedMethods.includes(cb.value)) {
+            cb.checked = true;
+            checkedCount++;
+            if (checkedCount === 1) firstCheckedValue = cb.value;
+        } else {
+            cb.checked = false;
+        }
+    });
+
     // Toggle menu
     btn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -44,13 +63,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    var checkboxes = document.querySelectorAll('.method-forti-checkbox:checked');
     var btnText = document.getElementById('method-filter-btn-text');
-    if (checkboxes.length > 0) {
-        if (checkboxes.length === 1) {
-            btnText.innerHTML = '<span style="color:#059669;font-weight:600;">' + checkboxes[0].value + '</span>';
+    if (checkedCount > 0) {
+        if (checkedCount === 1) {
+            btnText.innerHTML = '<span style="color:#059669;font-weight:600;">' + firstCheckedValue + '</span>';
         } else {
-            btnText.innerHTML = '<span style="color:#059669;font-weight:600;">' + checkboxes.length + ' Methods Selected</span>';
+            btnText.innerHTML = '<span style="color:#059669;font-weight:600;">' + checkedCount + ' Methods Selected</span>';
         }
     }
 });
