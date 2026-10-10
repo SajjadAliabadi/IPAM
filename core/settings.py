@@ -64,6 +64,10 @@ JAZZMIN_SETTINGS = {
         "changeform_format": "horizontal_tabs",
         "custom_links": {
         "network": [{
+            "name": "Global Maps", 
+            "url": "admin:network_subnet_global_maps", 
+            "icon": "fas fa-globe",
+        },{
             "name": "IP Calculator", 
             "url": "ip_calculator", 
             "icon": "fas fa-calculator",

@@ -161,13 +161,36 @@ class SubnetAdmin(ImportExportActionModelAdmin):
     )
 
     def get_urls(self):
-
         from django.urls import path
         urls = super().get_urls()
         custom_urls = [
             path('<int:subnet_id>/scan/', self.admin_site.admin_view(self.scan_single_subnet_view), name='network_subnet_scan'),
+            path('global-maps/', self.admin_site.admin_view(self.global_maps_view), name='network_subnet_global_maps'),
         ]
         return custom_urls + urls
+
+
+    def global_maps_view(self, request):
+        from django.shortcuts import render
+        selected_ids_str = request.GET.get('subnets', '')
+        selected_ids = []
+        if selected_ids_str:
+            selected_ids = [int(x) for x in selected_ids_str.split(',') if x.strip().isdigit()]
+        
+        all_subnets = self.model.objects.all().order_by('network_address')
+        if selected_ids:
+            display_subnets = all_subnets.filter(id__in=selected_ids)
+        else:
+            display_subnets = all_subnets
+            
+        context = dict(
+            self.admin_site.each_context(request),
+            title="Global Subnet Maps",
+            all_subnets=all_subnets,
+            display_subnets=display_subnets,
+            selected_ids=selected_ids,
+        )
+        return render(request, 'admin/network/subnet/global_maps.html', context)
 
     def scan_single_subnet_view(self, request, subnet_id):
         from django.contrib import messages
