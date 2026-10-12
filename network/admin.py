@@ -1218,8 +1218,106 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             path('clear-badges/', self.admin_site.admin_view(self.clear_badges_view), name='systemsettings_clear_badges'),
             path('clear-logs/', self.admin_site.admin_view(self.clear_logs_view), name='systemsettings_clear_logs'),
             path('clear-offline/', self.admin_site.admin_view(self.clear_offline_view), name='systemsettings_clear_offline'),
+            path('api/audit-subnets/', self.admin_site.admin_view(self.audit_subnets_api), name='systemsettings_audit_subnets'),
+            path('api/repair-subnets/', self.admin_site.admin_view(self.repair_subnets_api), name='systemsettings_repair_subnets'),
         ]
         return custom_urls + urls
+
+    def audit_subnets_api(self, request):
+        from django.http import JsonResponse
+        from network.models import Subnet, IPAddress
+        import ipaddress
+
+        subnets = Subnet.objects.all().order_by('network_address')
+        results = []
+
+        for sub in subnets:
+            try:
+                net = ipaddress.ip_network(sub.network_address, strict=False)
+                hosts = list(net.hosts())
+                if len(hosts) > 65536:
+                    hosts = hosts[:65536]
+                valid_set = set(str(h) for h in hosts)
+            except Exception as e:
+                results.append({
+                    'id': sub.id,
+                    'name': sub.name,
+                    'network': sub.network_address,
+                    'has_issues': True,
+                    'issue_count': 1,
+                    'issues': [f"Invalid CIDR address: {e}"]
+                })
+                continue
+
+            current_ips = list(sub.ips.all())
+            current_ip_strs = [ip.ip_address for ip in current_ips]
+            
+            outside_ips = [ip_str for ip_str in current_ip_strs if ip_str not in valid_set]
+            
+            seen = set()
+            duplicates = []
+            for ip_str in current_ip_strs:
+                if ip_str in seen:
+                    duplicates.append(ip_str)
+                else:
+                    seen.add(ip_str)
+
+            missing_count = len(valid_set - set(current_ip_strs))
+
+            issues = []
+            if outside_ips:
+                issues.append(f"{len(outside_ips)} IPs outside CIDR range (e.g. {outside_ips[0]})")
+            if duplicates:
+                issues.append(f"{len(duplicates)} duplicate IP records")
+            if missing_count > 0:
+                issues.append(f"{missing_count} missing host IPs")
+
+            results.append({
+                'id': sub.id,
+                'name': sub.name,
+                'network': sub.network_address,
+                'total_ips': len(current_ips),
+                'expected_ips': len(valid_set),
+                'has_issues': len(issues) > 0,
+                'issue_count': len(outside_ips) + len(duplicates) + missing_count,
+                'issues': issues
+            })
+
+        return JsonResponse({'status': 'ok', 'subnets': results})
+
+    def repair_subnets_api(self, request):
+        from django.http import JsonResponse
+        from network.models import Subnet, AuditLog
+        from .utils import perform_discovery
+        import json
+
+        if not request.user.has_perm('network.change_systemsettings'):
+            return JsonResponse({'status': 'error', 'message': 'Permission Denied'}, status=403)
+
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+            subnet_ids = body.get('subnet_ids', [])
+        except Exception:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON request'}, status=400)
+
+        subnets = Subnet.objects.filter(id__in=subnet_ids)
+        repaired_names = []
+        for sub in subnets:
+            sub.sync_ips()
+            perform_discovery([sub])
+            repaired_names.append(f"{sub.network_address} ({sub.name})")
+
+        AuditLog.objects.create(
+            user=request.user,
+            action='SYSTEM',
+            model_name='Subnet',
+            message=f"Admin repaired IP integrity for {len(repaired_names)} subnets: {', '.join(repaired_names)}"
+        )
+
+        return JsonResponse({
+            'status': 'ok',
+            'message': f"Successfully cleaned, repaired, and scanned {len(repaired_names)} subnet(s)!"
+        })
 
     def clear_badges_view(self, request):
         from network.models import IPAddress
@@ -1299,6 +1397,11 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         url = reverse('admin:systemsettings_clear_offline')
         return mark_safe(f'<a href="{url}" class="btn btn-outline-danger" style="border-radius: 8px; font-weight: 600; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;" onclick="return confirm(\'Are you sure you want to restore ALL Offline IPs back to Available?\');"><i class="fas fa-undo-alt"></i> Restore Offline IPs</a>')
 
+    @admin.display(description="Audit & Repair Subnet IPs")
+    def action_audit_subnets(self, obj):
+        from django.utils.safestring import mark_safe
+        return mark_safe('<button type="button" class="btn btn-outline-primary" id="btn-open-subnet-audit" style="border-radius: 8px; font-weight: 600; padding: 6px 14px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;"><i class="fas fa-stethoscope"></i> Audit & Repair Subnets</button>')
+
     fieldsets = (
         ('UI & Theming', {
             'fields': ('theme', 'custom_logo')
@@ -1341,11 +1444,11 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         except Exception as e:
             messages.error(request, f"Failed to apply time settings: {e}")
     class Media:
-        js = ('js/settings_banner.js',)
+        js = ('js/settings_banner.js', 'js/subnet_audit_modal.js')
     list_display = ('__str__', 'theme', 'offline_timeout_hours', 'auto_assign_ips')
     
     form = SystemSettingsForm
-    readonly_fields = ('action_clear_badges', 'action_clear_logs', 'action_clear_offline')
+    readonly_fields = ('action_clear_badges', 'action_clear_logs', 'action_clear_offline', 'action_audit_subnets')
     def get_fieldsets(self, request, obj=None):
         from django.utils import timezone
         current_time = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S')
@@ -1392,7 +1495,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                     'auto_assign_ips', 'enable_reservation', 
                     'reservation_timeout_hours', 'offline_timeout_hours', 
                     'new_ip_duration_hours', 'monitoring_retention_days', 
-                    'action_clear_badges', 'action_clear_logs', 'action_clear_offline'
+                    'action_clear_badges', 'action_clear_logs', 'action_clear_offline', 'action_audit_subnets'
                 ),
                 'description': mark_safe('<div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-left: 4px solid #6366f1; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.05); display: flex; align-items: flex-start; gap: 18px;"><div style="background: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); flex-shrink: 0;"><i class="fas fa-robot" style="color: #6366f1; font-size: 24px;"></i></div><div><h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 6px; letter-spacing: -0.01em;">Automation Engine & Lifecycle Rules</h4><p style="margin: 0; font-size: 13.5px; color: #64748b; font-weight: 500; line-height: 1.5;">Configure how the system automatically provisions new IPs, recycles offline servers, and manages data retention. These rules run continuously in the background to keep your network state perfectly accurate.</p></div></div>')
             }),

@@ -318,13 +318,12 @@ class CheckMethod(models.Model):
 # Signal to auto-discover/sync IPs when a Subnet is created or updated
 @receiver(post_save, sender=Subnet)
 def subnet_post_save(sender, instance, created, **kwargs):
-    def handle_subnet_sync(subnet, is_created):
+    def handle_subnet_sync(subnet):
         subnet.sync_ips()
-        if is_created:
-            from .utils import perform_discovery
-            perform_discovery([subnet])
+        from .utils import perform_discovery
+        perform_discovery([subnet])
 
-    thread = threading.Thread(target=handle_subnet_sync, args=(instance, created))
+    thread = threading.Thread(target=handle_subnet_sync, args=(instance,))
     thread.start()
 
 
