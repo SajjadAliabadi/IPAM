@@ -238,7 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (val && !val.includes('/') && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(val)) {
                 netInput.value = val + '/24';
             }
-            initSlider();
         });
     }
 

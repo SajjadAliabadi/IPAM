@@ -252,7 +252,7 @@ def perform_discovery(subnets_queryset):
 
         # 5. Bulk database write (100x faster than individual saves)
         if to_create:
-            IPAddress.objects.bulk_create(to_create, batch_size=500)
+            IPAddress.objects.bulk_create(to_create, batch_size=500, ignore_conflicts=True)
         if to_update:
             IPAddress.objects.bulk_update(to_update, [
                 'status', 'discovery_reason', 'os_name', 'mac_address',
@@ -260,8 +260,8 @@ def perform_discovery(subnets_queryset):
                 'reserved_at', 'assigned_to', 'hostname', 'last_checked'
             ], batch_size=500)
 
+        Subnet.objects.filter(id=subnet.id).update(last_scanned=now_time)
         subnet.last_scanned = now_time
-        subnet.save()
         AuditLog.objects.create(
             action='SCAN',
             model_name='Subnet',

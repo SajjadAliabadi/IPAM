@@ -68,8 +68,8 @@ class Command(BaseCommand):
             perform_discovery(qs)
             
             for s in subnets_to_scan:
-                s.last_scanned = timezone.now()
-                s.save()
+                now_ts = timezone.now()
+                Subnet.objects.filter(id=s.id).update(last_scanned=now_ts)
                 AuditLog.objects.create(
                     action='SCAN',
                     model_name='Subnet',

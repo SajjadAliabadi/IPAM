@@ -124,8 +124,8 @@ class SubnetAdmin(ImportExportActionModelAdmin):
     def usage_progress(self, obj):
         from django.utils.html import format_html
         
-        total = obj.ipaddress_set.count()
-        used = obj.ipaddress_set.filter(status='used').count()
+        total = obj.ips.count()
+        used = obj.ips.filter(status='used').count()
         if total == 0:
             return format_html('<span style="color: #94a3b8; font-style: italic;">No IPs</span>')
             
@@ -250,6 +250,7 @@ class SubnetAdmin(ImportExportActionModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
+        obj.sync_ips()
 
     class Media:
         js = (
@@ -1092,6 +1093,14 @@ class IPRequestAdmin(admin.ModelAdmin):
             net = ipaddress.ip_network(subnet.network_address, strict=False)
         except Exception:
             net = None
+
+        if net and net.prefixlen <= 30:
+            expected_hosts = min(net.num_addresses - 2, 65536)
+            if expected_hosts > 0 and subnet.ips.count() != expected_hosts:
+                try:
+                    subnet.sync_ips()
+                except Exception:
+                    pass
 
         ips = IPAddress.objects.filter(subnet_id=subnet_id).order_by('ip_address_padded')
         data = []

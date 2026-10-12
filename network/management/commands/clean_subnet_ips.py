@@ -95,7 +95,7 @@ class Command(BaseCommand):
                     ))
 
             if new_ips:
-                IPAddress.objects.bulk_create(new_ips, batch_size=500)
+                IPAddress.objects.bulk_create(new_ips, batch_size=500, ignore_conflicts=True)
                 total_created += len(new_ips)
 
             final_count = IPAddress.objects.filter(subnet=subnet).count()
