@@ -144,7 +144,7 @@ class SubnetAdmin(ImportExportActionModelAdmin):
         
     auto_assign_display.short_description = "Auto-Assign Pool"
 
-    actions = ['scan_subnet']
+    actions = ['scan_subnet', 'clean_subnet_ips_action']
     
     fieldsets = (
         ('General Information', {
@@ -223,6 +223,13 @@ class SubnetAdmin(ImportExportActionModelAdmin):
     def scan_subnet(self, request, queryset):
         perform_discovery(queryset)
         messages.success(request, "Subnet scan completed successfully.")
+
+    @admin.action(description='Verify & Fix Subnet IP Integrity (Remove Duplicates / Stale IPs)')
+    def clean_subnet_ips_action(self, request, queryset):
+        from django.core.management import call_command
+        for sub in queryset:
+            call_command('clean_subnet_ips', subnet=sub.network_address)
+        messages.success(request, f"Successfully verified and fixed IP integrity for {queryset.count()} subnet(s).")
 
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -1025,10 +1032,33 @@ class IPRequestAdmin(admin.ModelAdmin):
     def subnet_map_api(self, request, subnet_id):
         from django.http import JsonResponse
         from .models import IPAddress, Subnet
-        ips = IPAddress.objects.filter(subnet_id=subnet_id).order_by('ip_address_padded')
-        data = [{'id': ip.id, 'ip': ip.ip_address, 'status': ip.status} for ip in ips]
+        import ipaddress
+        
         subnet = Subnet.objects.filter(id=subnet_id).first()
-        subnet_info = f"{subnet.network_address} ({subnet.name})" if subnet else ""
+        if not subnet:
+            return JsonResponse({'ips': [], 'subnet_info': ''})
+
+        try:
+            net = ipaddress.ip_network(subnet.network_address, strict=False)
+        except Exception:
+            net = None
+
+        ips = IPAddress.objects.filter(subnet_id=subnet_id).order_by('ip_address_padded')
+        data = []
+        seen = set()
+        for ip in ips:
+            if ip.ip_address in seen:
+                continue
+            if net:
+                try:
+                    if ipaddress.ip_address(ip.ip_address) not in net:
+                        continue
+                except Exception:
+                    pass
+            seen.add(ip.ip_address)
+            data.append({'id': ip.id, 'ip': ip.ip_address, 'status': ip.status})
+
+        subnet_info = f"{subnet.network_address} ({subnet.name})"
         return JsonResponse({'ips': data, 'subnet_info': subnet_info})
 
     
