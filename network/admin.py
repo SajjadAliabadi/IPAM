@@ -209,6 +209,10 @@ class SubnetAdmin(ImportExportActionModelAdmin):
             messages.success(request, f"Discovery scan completed for {subnet.first().network_address}.")
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('admin:network_subnet_changelist')))
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        obj.sync_ips()
+
     class Media:
         js = (
             'js/nouislider.min.js',
@@ -860,9 +864,17 @@ class IPAddressAdmin(admin.ModelAdmin):
                 app_label="network",
             )
             return TemplateResponse(request, "admin/network/ipaddress/subnet_selector.html", context)
-            
-        
-                
+
+        subnet_id = request.GET.get('subnet__id__exact')
+        if subnet_id:
+            try:
+                from .models import Subnet
+                sub = Subnet.objects.filter(id=subnet_id).first()
+                if sub:
+                    sub.sync_ips()
+            except Exception:
+                pass
+
         return super().changelist_view(request, extra_context=extra_context)
 
 from django.template.response import TemplateResponse

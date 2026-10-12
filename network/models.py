@@ -1,4 +1,4 @@
-﻿import ipaddress
+import ipaddress
 import threading
 from django.db import models
 from django.contrib.auth.models import User
@@ -29,10 +29,68 @@ class Subnet(models.Model):
     auto_assign_range_start = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP Pool Range', help_text='Use the graphical slider below to select the auto-assign IP boundaries.')
     auto_assign_range_end = models.GenericIPAddressField(null=True, blank=True, help_text='End IP of the auto-assign pool. Leave blank to use entire subnet.')
 
-
-
     def __str__(self):
         return f"{self.network_address} ({self.name})"
+
+    def sync_ips(self):
+        """Reconciles IPs attached to this subnet:
+        Removes IPs that no longer belong to this subnet's network_address CIDR,
+        and generates missing host IPs for the subnet.
+        """
+        import ipaddress
+        try:
+            net = ipaddress.ip_network(self.network_address, strict=False)
+        except Exception:
+            return
+
+        hosts = list(net.hosts())
+        if len(hosts) > 65536:
+            hosts = hosts[:65536]
+        valid_ip_strs = set(str(h) for h in hosts)
+
+        # 1. Find all IPs currently associated with this subnet
+        current_ips = list(self.ips.all())
+        to_delete = []
+
+        for ip_obj in current_ips:
+            if ip_obj.ip_address not in valid_ip_strs:
+                # Check if another subnet owns this IP
+                other_subnets = Subnet.objects.exclude(id=self.id)
+                reassigned = False
+                for other in other_subnets:
+                    try:
+                        other_net = ipaddress.ip_network(other.network_address, strict=False)
+                        if ipaddress.ip_address(ip_obj.ip_address) in other_net:
+                            ip_obj.subnet = other
+                            ip_obj.save(update_fields=['subnet'])
+                            reassigned = True
+                            break
+                    except Exception:
+                        pass
+                if not reassigned:
+                    to_delete.append(ip_obj.id)
+
+        if to_delete:
+            self.ips.filter(id__in=to_delete).delete()
+
+        # 2. Find missing host IPs and create them
+        existing_strs = set(self.ips.values_list('ip_address', flat=True))
+        missing_hosts = [h for h in valid_ip_strs if h not in existing_strs]
+
+        if missing_hosts:
+            to_create = []
+            for h in missing_hosts:
+                if not IPAddress.objects.filter(ip_address=h).exists():
+                    parts = h.split('.')
+                    padded = f"{int(parts[0]):03d}.{int(parts[1]):03d}.{int(parts[2]):03d}.{int(parts[3]):03d}" if len(parts) == 4 else None
+                    to_create.append(IPAddress(
+                        ip_address=h,
+                        ip_address_padded=padded,
+                        subnet=self,
+                        status='available'
+                    ))
+            if to_create:
+                IPAddress.objects.bulk_create(to_create, batch_size=500)
 
 class SystemSettings(models.Model):
     THEME_CHOICES = (
@@ -257,29 +315,17 @@ class CheckMethod(models.Model):
     def __str__(self):
         return self.name
 
-# Signal to auto-discover IPs when a Subnet is created
+# Signal to auto-discover/sync IPs when a Subnet is created or updated
 @receiver(post_save, sender=Subnet)
 def subnet_post_save(sender, instance, created, **kwargs):
-    if created:
-        def scan_new_subnet(subnet):
+    def handle_subnet_sync(subnet, is_created):
+        subnet.sync_ips()
+        if is_created:
             from .utils import perform_discovery
-            net = ipaddress.ip_network(subnet.network_address, strict=False)
-            hosts = list(net.hosts())
-            # For local demo, limit large subnets
-            if len(hosts) > 256:
-                hosts = hosts[:256]
-                
-            for host in hosts:
-                ip_str = str(host)
-                IPAddress.objects.get_or_create(
-                    ip_address=ip_str,
-                    defaults={'subnet': subnet, 'status': 'available'}
-                )
-            # Run the discovery logic on this subnet
             perform_discovery([subnet])
-            
-        thread = threading.Thread(target=scan_new_subnet, args=(instance,))
-        thread.start()
+
+    thread = threading.Thread(target=handle_subnet_sync, args=(instance, created))
+    thread.start()
 
 
 
