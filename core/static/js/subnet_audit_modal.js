@@ -7,19 +7,25 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal fade" id="subnetAuditModal" tabindex="-1" role="dialog" aria-labelledby="subnetAuditModalLabel" aria-hidden="true" style="z-index: 10500;">
         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.15); overflow: hidden;">
-                <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 16px 24px; border-bottom: none;">
-                    <h5 class="modal-title" id="subnetAuditModalLabel" style="font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-stethoscope" style="color: #38bdf8;"></i> Subnet IP Integrity Scanner
-                    </h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8; text-shadow: none;">
-                        <span aria-hidden="true">&times;</span>
+                <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 16px 24px; border-bottom: none; display: flex !important; align-items: center !important; justify-content: space-between !important; width: 100% !important;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-stethoscope" style="color: #38bdf8; font-size: 18px;"></i>
+                        <h5 class="modal-title" id="subnetAuditModalLabel" style="font-size: 17px; font-weight: 700; margin: 0; color: #ffffff; line-height: 1.2;">
+                            Subnet IP Integrity Scanner
+                        </h5>
+                    </div>
+                    <button type="button" id="btn-close-subnet-audit-x" class="subnet-audit-close-btn" aria-label="Close" title="Close"
+                        style="background: transparent !important; border: none !important; box-shadow: none !important; outline: none !important; color: #94a3b8 !important; font-size: 20px !important; line-height: 1 !important; padding: 6px 10px !important; margin: 0 !important; cursor: pointer !important; border-radius: 6px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; transition: all 0.2s ease;"
+                        onmouseover="this.style.color='#ffffff'; this.style.backgroundColor='rgba(255,255,255,0.1)';"
+                        onmouseout="this.style.color='#94a3b8'; this.style.backgroundColor='transparent';">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="modal-body" id="subnetAuditBody" style="padding: 24px; min-height: 200px; background: #f8fafc;">
                     <!-- Dynamic content injected here -->
                 </div>
-                <div class="modal-footer" id="subnetAuditFooter" style="background: white; border-top: 1px solid #e2e8f0; padding: 12px 24px; display: flex; justify-content: space-between;">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal" style="border-radius: 6px; font-weight: 600;">Close</button>
+                <div class="modal-footer" id="subnetAuditFooter" style="background: white; border-top: 1px solid #e2e8f0; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" id="btn-close-subnet-audit-footer" class="btn btn-secondary subnet-audit-close-btn" data-dismiss="modal" style="border-radius: 6px; font-weight: 600; padding: 7px 18px;">Close</button>
                     <div id="subnetAuditActionButtons"></div>
                 </div>
             </div>
@@ -28,9 +34,106 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    var modalElem = $('#subnetAuditModal');
     var modalBody = document.getElementById('subnetAuditBody');
     var modalActions = document.getElementById('subnetAuditActionButtons');
+
+    function openAuditModal() {
+        var modal = document.getElementById('subnetAuditModal');
+        if (window.$ && typeof $('#subnetAuditModal').modal === 'function') {
+            $('#subnetAuditModal').modal('show');
+        } else if (window.jQuery && typeof jQuery('#subnetAuditModal').modal === 'function') {
+            jQuery('#subnetAuditModal').modal('show');
+        } else if (modal) {
+            modal.classList.add('show');
+            modal.style.display = 'block';
+            modal.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+            if (!document.querySelector('.modal-backdrop')) {
+                var backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+            }
+        }
+    }
+
+    function closeAuditModal() {
+        try {
+            if (window.$ && typeof $('#subnetAuditModal').modal === 'function') {
+                $('#subnetAuditModal').modal('hide');
+            } else if (window.jQuery && typeof jQuery('#subnetAuditModal').modal === 'function') {
+                jQuery('#subnetAuditModal').modal('hide');
+            }
+        } catch (e) {
+            console.warn('jQuery modal hide error:', e);
+        }
+
+        var modal = document.getElementById('subnetAuditModal');
+        if (modal) {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+        }
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+
+        var backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(function(b) {
+            b.remove();
+        });
+    }
+
+    // Attach explicit click handlers to close buttons
+    var closeXBtn = document.getElementById('btn-close-subnet-audit-x');
+    if (closeXBtn) {
+        closeXBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAuditModal();
+        });
+    }
+
+    var closeFooterBtn = document.getElementById('btn-close-subnet-audit-footer');
+    if (closeFooterBtn) {
+        closeFooterBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAuditModal();
+        });
+    }
+
+    // Close on clicking backdrop (outside dialog)
+    var modalDialog = document.getElementById('subnetAuditModal');
+    if (modalDialog) {
+        modalDialog.addEventListener('click', function(e) {
+            if (e.target === modalDialog) {
+                closeAuditModal();
+            }
+        });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            var m = document.getElementById('subnetAuditModal');
+            if (m && (m.classList.contains('show') || m.style.display === 'block')) {
+                closeAuditModal();
+            }
+        }
+    });
+
+    // Document-level delegated close event listener
+    document.addEventListener('click', function(e) {
+        var trigger = e.target.closest('.subnet-audit-close-btn, [data-dismiss="modal"]');
+        if (trigger) {
+            var modal = document.getElementById('subnetAuditModal');
+            if (modal && modal.contains(trigger)) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAuditModal();
+            }
+        }
+    });
 
     auditBtn.addEventListener('click', function(e) {
         e.preventDefault();
@@ -53,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function startAuditScan() {
-        modalElem.modal('show');
+        openAuditModal();
         modalBody.innerHTML = `
             <div style="text-align: center; padding: 40px 20px;">
                 <i class="fas fa-circle-notch fa-spin" style="font-size: 38px; color: #3b82f6; margin-bottom: 16px;"></i>
