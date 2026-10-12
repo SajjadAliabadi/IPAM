@@ -37,7 +37,8 @@ class Subnet(models.Model):
         Removes IPs that no longer belong to this subnet's network_address CIDR,
         and generates missing host IPs for the subnet.
         """
-        import ipaddress
+        import ipaddress, time
+        from django.db.utils import OperationalError
         try:
             net = ipaddress.ip_network(self.network_address, strict=False)
         except Exception:
@@ -48,56 +49,64 @@ class Subnet(models.Model):
             hosts = hosts[:65536]
         valid_ip_strs = set(str(h) for h in hosts)
 
-        # 1. Find all IPs currently associated with this subnet
-        current_ips = list(self.ips.all())
-        to_delete = []
+        for attempt in range(5):
+            try:
+                # 1. Find all IPs currently associated with this subnet
+                current_ips = list(self.ips.all())
+                to_delete = []
 
-        for ip_obj in current_ips:
-            if ip_obj.ip_address not in valid_ip_strs:
-                # Check if another subnet owns this IP
-                other_subnets = Subnet.objects.exclude(id=self.id)
-                reassigned = False
-                for other in other_subnets:
-                    try:
-                        other_net = ipaddress.ip_network(other.network_address, strict=False)
-                        if ipaddress.ip_address(ip_obj.ip_address) in other_net:
-                            ip_obj.subnet = other
-                            ip_obj.save(update_fields=['subnet'])
-                            reassigned = True
-                            break
-                    except Exception:
-                        pass
-                if not reassigned:
-                    to_delete.append(ip_obj.id)
+                for ip_obj in current_ips:
+                    if ip_obj.ip_address not in valid_ip_strs:
+                        # Check if another subnet owns this IP
+                        other_subnets = Subnet.objects.exclude(id=self.id)
+                        reassigned = False
+                        for other in other_subnets:
+                            try:
+                                other_net = ipaddress.ip_network(other.network_address, strict=False)
+                                if ipaddress.ip_address(ip_obj.ip_address) in other_net:
+                                    ip_obj.subnet = other
+                                    ip_obj.save(update_fields=['subnet'])
+                                    reassigned = True
+                                    break
+                            except Exception:
+                                pass
+                        if not reassigned:
+                            to_delete.append(ip_obj.id)
 
-        if to_delete:
-            self.ips.filter(id__in=to_delete).delete()
+                if to_delete:
+                    self.ips.filter(id__in=to_delete).delete()
 
-        # 2. Find missing host IPs and create/reassign them
-        existing_strs = set(self.ips.values_list('ip_address', flat=True))
-        missing_hosts = [h for h in valid_ip_strs if h not in existing_strs]
+                # 2. Find missing host IPs and create/reassign them
+                existing_strs = set(self.ips.values_list('ip_address', flat=True))
+                missing_hosts = [h for h in valid_ip_strs if h not in existing_strs]
 
-        if missing_hosts:
-            # Reassign any missing hosts that already exist in DB to this subnet
-            existing_in_db = IPAddress.objects.filter(ip_address__in=missing_hosts)
-            if existing_in_db.exists():
-                existing_in_db.update(subnet=self)
-                reassigned_set = set(existing_in_db.values_list('ip_address', flat=True))
-                missing_hosts = [h for h in missing_hosts if h not in reassigned_set]
+                if missing_hosts:
+                    # Reassign any missing hosts that already exist in DB to this subnet
+                    existing_in_db = IPAddress.objects.filter(ip_address__in=missing_hosts)
+                    if existing_in_db.exists():
+                        existing_in_db.update(subnet=self)
+                        reassigned_set = set(existing_in_db.values_list('ip_address', flat=True))
+                        missing_hosts = [h for h in missing_hosts if h not in reassigned_set]
 
-            if missing_hosts:
-                to_create = []
-                for h in missing_hosts:
-                    parts = h.split('.')
-                    padded = f"{int(parts[0]):03d}.{int(parts[1]):03d}.{int(parts[2]):03d}.{int(parts[3]):03d}" if len(parts) == 4 else None
-                    to_create.append(IPAddress(
-                        ip_address=h,
-                        ip_address_padded=padded,
-                        subnet=self,
-                        status='available'
-                    ))
-                if to_create:
-                    IPAddress.objects.bulk_create(to_create, batch_size=500, ignore_conflicts=True)
+                    if missing_hosts:
+                        to_create = []
+                        for h in missing_hosts:
+                            parts = h.split('.')
+                            padded = f"{int(parts[0]):03d}.{int(parts[1]):03d}.{int(parts[2]):03d}.{int(parts[3]):03d}" if len(parts) == 4 else None
+                            to_create.append(IPAddress(
+                                ip_address=h,
+                                ip_address_padded=padded,
+                                subnet=self,
+                                status='available'
+                            ))
+                        if to_create:
+                            IPAddress.objects.bulk_create(to_create, batch_size=500, ignore_conflicts=True)
+                break
+            except OperationalError as e:
+                if 'locked' in str(e).lower() and attempt < 4:
+                    time.sleep(0.5 * (attempt + 1))
+                else:
+                    raise
 
 class SystemSettings(models.Model):
     THEME_CHOICES = (
@@ -326,24 +335,31 @@ class CheckMethod(models.Model):
 @receiver(post_save, sender=Subnet)
 def subnet_post_save(sender, instance, created, **kwargs):
     subnet_id = instance.id
-    def handle_subnet_sync(sub_id):
-        from django.db import connection
-        try:
-            from .models import Subnet
-            subnet = Subnet.objects.filter(id=sub_id).first()
-            if not subnet:
-                return
-            subnet.sync_ips()
-            from .utils import perform_discovery
-            perform_discovery([subnet])
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Error syncing subnet {sub_id}: {e}")
-        finally:
-            connection.close()
+    from django.db import transaction
 
-    thread = threading.Thread(target=handle_subnet_sync, args=(subnet_id,), daemon=True)
-    thread.start()
+    def start_background_sync():
+        def handle_subnet_sync(sub_id):
+            import time
+            time.sleep(0.5)  # Let HTTP transaction and write lock fully complete
+            from django.db import connection
+            try:
+                from .models import Subnet
+                subnet = Subnet.objects.filter(id=sub_id).first()
+                if not subnet:
+                    return
+                subnet.sync_ips()
+                from .utils import perform_discovery
+                perform_discovery([subnet])
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Error syncing subnet {sub_id}: {e}")
+            finally:
+                connection.close()
+
+        thread = threading.Thread(target=handle_subnet_sync, args=(subnet_id,), daemon=True)
+        thread.start()
+
+    transaction.on_commit(start_background_sync)
 
 
 

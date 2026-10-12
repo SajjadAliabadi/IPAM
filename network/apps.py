@@ -13,6 +13,6 @@ class NetworkConfig(AppConfig):
                 with connection.cursor() as cursor:
                     cursor.execute('PRAGMA journal_mode=WAL;')
                     cursor.execute('PRAGMA synchronous=NORMAL;')
-                    cursor.execute('PRAGMA busy_timeout=30000;')
+                    cursor.execute('PRAGMA busy_timeout=60000;')
         
         connection_created.connect(configure_sqlite)

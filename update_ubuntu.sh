@@ -21,6 +21,9 @@ python manage.py collectstatic --noinput
 python manage.py migrate
 echo "      Setting up default permission groups..."
 python manage.py setup_default_groups
+echo "      Optimizing SQLite database (WAL mode & concurrency)..."
+python -c "import sqlite3; conn = sqlite3.connect('db.sqlite3'); conn.execute('PRAGMA journal_mode=WAL;'); conn.execute('PRAGMA busy_timeout=60000;'); conn.close()"
+chmod 666 db.sqlite3* 2>/dev/null || true
 
 echo "[4/4] Restarting IPAM Services..."
 systemctl restart ipam-web.service
