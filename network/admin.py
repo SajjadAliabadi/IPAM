@@ -53,6 +53,11 @@ class SubnetForm(forms.ModelForm):
         model = Subnet
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'check_methods' in self.fields:
+            self.fields['check_methods'].required = False
+
     def clean(self):
         cleaned_data = super().clean()
         network_address = cleaned_data.get('network_address')
@@ -60,22 +65,56 @@ class SubnetForm(forms.ModelForm):
         end_ip = cleaned_data.get('auto_assign_range_end')
 
         if network_address:
+            network_address = str(network_address).strip()
+            # If user entered an IP without slash (e.g. '172.16.152.0'), infer prefix or default to /24
+            if '/' not in network_address:
+                prefix = '24'
+                if self.instance and self.instance.network_address and '/' in self.instance.network_address:
+                    prefix = self.instance.network_address.split('/')[-1]
+                network_address = f"{network_address}/{prefix}"
+                cleaned_data['network_address'] = network_address
+
             try:
                 net = ipaddress.ip_network(network_address, strict=False)
-                
+                cleaned_data['network_address'] = str(net)
+                hosts = list(net.hosts())
+                first_host = str(hosts[0]) if hosts else None
+                last_host = str(hosts[-1]) if hosts else None
+
+                # Reconcile auto_assign pool boundaries with the new subnet
                 if start_ip:
-                    if ipaddress.ip_address(start_ip) not in net:
-                        self.add_error('auto_assign_range_start', f"IP {start_ip} does not belong to subnet {network_address}.")
+                    try:
+                        if ipaddress.ip_address(start_ip) not in net:
+                            cleaned_data['auto_assign_range_start'] = first_host
+                            start_ip = first_host
+                    except ValueError:
+                        cleaned_data['auto_assign_range_start'] = first_host
+                        start_ip = first_host
+                elif first_host:
+                    cleaned_data['auto_assign_range_start'] = first_host
+                    start_ip = first_host
+
                 if end_ip:
-                    if ipaddress.ip_address(end_ip) not in net:
-                        self.add_error('auto_assign_range_end', f"IP {end_ip} does not belong to subnet {network_address}.")
-                
+                    try:
+                        if ipaddress.ip_address(end_ip) not in net:
+                            cleaned_data['auto_assign_range_end'] = last_host
+                            end_ip = last_host
+                    except ValueError:
+                        cleaned_data['auto_assign_range_end'] = last_host
+                        end_ip = last_host
+                elif last_host:
+                    cleaned_data['auto_assign_range_end'] = last_host
+                    end_ip = last_host
+
                 if start_ip and end_ip:
-                    if ipaddress.ip_address(start_ip) > ipaddress.ip_address(end_ip):
-                        self.add_error('auto_assign_range_start', "Start IP cannot be greater than End IP.")
-                        
+                    try:
+                        if ipaddress.ip_address(start_ip) > ipaddress.ip_address(end_ip):
+                            cleaned_data['auto_assign_range_start'] = first_host
+                            cleaned_data['auto_assign_range_end'] = last_host
+                    except ValueError:
+                        pass
             except ValueError as e:
-                pass
+                self.add_error('network_address', f"Invalid CIDR or network address: {e}")
                 
         return cleaned_data
 
@@ -211,7 +250,6 @@ class SubnetAdmin(ImportExportActionModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        obj.sync_ips()
 
     class Media:
         js = (

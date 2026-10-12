@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     
 
     const enableInput = document.getElementById('id_enable_auto_assign');
@@ -96,14 +96,25 @@
     }
     
     function parseCIDR(cidr) {
-        if (!cidr || !cidr.includes('/')) return null;
+        if (!cidr) return null;
+        cidr = cidr.trim();
+        if (!cidr.includes('/')) {
+            cidr = cidr + '/24';
+        }
         const parts = cidr.split('/');
         const ip = parts[0];
         const mask = parseInt(parts[1], 10);
-        if (mask < 0 || mask > 32) return null;
+        if (isNaN(mask) || mask < 0 || mask > 32) return null;
+        
+        const ipParts = ip.split('.');
+        if (ipParts.length !== 4) return null;
+        for (let p of ipParts) {
+            let num = parseInt(p, 10);
+            if (isNaN(num) || num < 0 || num > 255) return null;
+        }
         
         const ipLong = ipToLong(ip);
-        const maskLong = (0xFFFFFFFF << (32 - mask)) >>> 0;
+        const maskLong = (mask === 0) ? 0 : ((0xFFFFFFFF << (32 - mask)) >>> 0);
         const netLong = (ipLong & maskLong) >>> 0;
         const brdLong = (netLong | ~maskLong) >>> 0;
         
@@ -125,6 +136,8 @@
             sliderWrapper.style.display = 'none';
             return;
         }
+
+        sliderWrapper.style.display = enableInput.checked ? 'block' : 'none';
         
         let initialStart = startInput.value ? ipToLong(startInput.value) : range.start;
         let initialEnd = endInput.value ? ipToLong(endInput.value) : range.end;
@@ -135,6 +148,17 @@
             initialStart = range.start;
             initialEnd = range.end;
         }
+
+        // Keep hidden inputs and labels synced immediately
+        const startValStr = longToIp(initialStart);
+        const endValStr = longToIp(initialEnd);
+        startInput.value = startValStr;
+        endInput.value = endValStr;
+
+        const poolStartEl = document.getElementById('pool-start');
+        const poolEndEl = document.getElementById('pool-end');
+        if (poolStartEl) poolStartEl.innerText = startValStr;
+        if (poolEndEl) poolEndEl.innerText = endValStr;
 
         if (sliderInstance) {
             sliderDiv.noUiSlider.destroy();
@@ -159,8 +183,8 @@
             const startVal = longToIp(Math.round(values[0]));
             const endVal = longToIp(Math.round(values[1]));
             
-            document.getElementById('pool-start').innerText = startVal;
-            document.getElementById('pool-end').innerText = endVal;
+            if (poolStartEl) poolStartEl.innerText = startVal;
+            if (poolEndEl) poolEndEl.innerText = endVal;
             
             startInput.value = startVal;
             endInput.value = endVal;
@@ -176,9 +200,6 @@
         if (startField) startField.style.display = isEnabled ? '' : 'none';
         
         if (sliderWrapper) sliderWrapper.style.display = isEnabled ? 'block' : 'none';
-        
-        // If disabling, optionally clear values so they don't get saved, 
-        // but it's better to keep them if user re-enables.
     }
 
     enableInput.addEventListener('change', toggleFields);
@@ -196,9 +217,42 @@
         tryInit();
     }
 
-    netInput.addEventListener('change', function() {
+    function onNetInputChanged() {
+        let val = netInput.value.trim();
+        if (val && !val.includes('/') && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(val)) {
+            netInput.value = val + '/24';
+        }
+        initSlider();
+    }
+
+    netInput.addEventListener('change', onNetInputChanged);
+    netInput.addEventListener('blur', onNetInputChanged);
+    netInput.addEventListener('input', function() {
         initSlider();
     });
+
+    const parentForm = netInput.closest('form');
+    if (parentForm) {
+        parentForm.addEventListener('submit', function() {
+            let val = netInput.value.trim();
+            if (val && !val.includes('/') && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(val)) {
+                netInput.value = val + '/24';
+            }
+            initSlider();
+        });
+    }
+
+    // Auto-switch to tab containing validation errors if any
+    const firstError = document.querySelector('.errorlist, .is-invalid, .errors');
+    if (firstError) {
+        const pane = firstError.closest('.tab-pane');
+        if (pane && pane.id) {
+            const tabBtn = document.querySelector(`a[href="#${pane.id}"], button[data-target="#${pane.id}"], [data-toggle="tab"][href="#${pane.id}"]`);
+            if (tabBtn) {
+                tabBtn.click();
+            }
+        }
+    }
 });
 
 

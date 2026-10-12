@@ -22,7 +22,7 @@ class Subnet(models.Model):
     name = models.CharField(max_length=100)
     department = models.CharField(max_length=100, blank=True, null=True)
     
-    check_methods = models.ManyToManyField('CheckMethod', help_text="Select one or more discovery methods for this subnet. If multiple are selected, IP is marked 'In Use' if ANY method succeeds.")
+    check_methods = models.ManyToManyField('CheckMethod', blank=True, help_text="Select one or more discovery methods for this subnet. If multiple are selected, IP is marked 'In Use' if ANY method succeeds.")
     scan_interval_minutes = models.IntegerField(default=60, help_text="Scan interval in minutes")
     last_scanned = models.DateTimeField(null=True, blank=True)
     enable_auto_assign = models.BooleanField(default=True, verbose_name='Enable Auto-Assignment', help_text='Allow the system to automatically hand out IPs from this subnet.')
@@ -73,14 +73,21 @@ class Subnet(models.Model):
         if to_delete:
             self.ips.filter(id__in=to_delete).delete()
 
-        # 2. Find missing host IPs and create them
+        # 2. Find missing host IPs and create/reassign them
         existing_strs = set(self.ips.values_list('ip_address', flat=True))
         missing_hosts = [h for h in valid_ip_strs if h not in existing_strs]
 
         if missing_hosts:
-            to_create = []
-            for h in missing_hosts:
-                if not IPAddress.objects.filter(ip_address=h).exists():
+            # Reassign any missing hosts that already exist in DB to this subnet
+            existing_in_db = IPAddress.objects.filter(ip_address__in=missing_hosts)
+            if existing_in_db.exists():
+                existing_in_db.update(subnet=self)
+                reassigned_set = set(existing_in_db.values_list('ip_address', flat=True))
+                missing_hosts = [h for h in missing_hosts if h not in reassigned_set]
+
+            if missing_hosts:
+                to_create = []
+                for h in missing_hosts:
                     parts = h.split('.')
                     padded = f"{int(parts[0]):03d}.{int(parts[1]):03d}.{int(parts[2]):03d}.{int(parts[3]):03d}" if len(parts) == 4 else None
                     to_create.append(IPAddress(
@@ -89,8 +96,8 @@ class Subnet(models.Model):
                         subnet=self,
                         status='available'
                     ))
-            if to_create:
-                IPAddress.objects.bulk_create(to_create, batch_size=500)
+                if to_create:
+                    IPAddress.objects.bulk_create(to_create, batch_size=500, ignore_conflicts=True)
 
 class SystemSettings(models.Model):
     THEME_CHOICES = (
@@ -318,12 +325,24 @@ class CheckMethod(models.Model):
 # Signal to auto-discover/sync IPs when a Subnet is created or updated
 @receiver(post_save, sender=Subnet)
 def subnet_post_save(sender, instance, created, **kwargs):
-    def handle_subnet_sync(subnet):
-        subnet.sync_ips()
-        from .utils import perform_discovery
-        perform_discovery([subnet])
+    subnet_id = instance.id
+    def handle_subnet_sync(sub_id):
+        from django.db import connection
+        try:
+            from .models import Subnet
+            subnet = Subnet.objects.filter(id=sub_id).first()
+            if not subnet:
+                return
+            subnet.sync_ips()
+            from .utils import perform_discovery
+            perform_discovery([subnet])
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Error syncing subnet {sub_id}: {e}")
+        finally:
+            connection.close()
 
-    thread = threading.Thread(target=handle_subnet_sync, args=(instance,))
+    thread = threading.Thread(target=handle_subnet_sync, args=(subnet_id,), daemon=True)
     thread.start()
 
 
