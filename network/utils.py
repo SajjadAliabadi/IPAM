@@ -1,12 +1,13 @@
-﻿import socket
+import socket
 import subprocess
 import ipaddress
 import concurrent.futures
+import time
 from django.utils import timezone
 from .models import IPAddress, AuditLog, CheckMethod, SystemSettings
 import platform
 
-def check_port(ip, port, timeout=0.5):
+def check_port(ip, port, timeout=0.3):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(timeout)
@@ -123,119 +124,150 @@ def scan_single_host(ip_str, methods):
     open_ports_str = ",".join(sorted(list(set(open_ports_list))))
     return ip_str, final_status, reason, os_name, mac_address, open_ports_str
 
+def _process_ip_status_update(ip_obj, final_status, reason, os_name, mac_address, open_ports_str, settings, now_time):
+    if os_name: ip_obj.os_name = os_name
+    if mac_address: ip_obj.mac_address = mac_address
+    if open_ports_str: ip_obj.open_ports = open_ports_str
+
+    if ip_obj.status == 'static':
+        if final_status == 'used':
+            ip_obj.last_seen = now_time
+            ip_obj.discovery_reason = reason
+        ip_obj.last_checked = now_time
+        return
+
+    if final_status == 'used':
+        if not ip_obj.first_seen:
+            ip_obj.first_seen = now_time
+        ip_obj.last_seen = now_time
+        ip_obj.last_offline_at = None
+        ip_obj.discovery_reason = reason
+        ip_obj.status = 'used'
+        ip_obj.reserved_at = None
+    else:
+        if ip_obj.status == 'used':
+            ip_obj.status = 'offline'
+            ip_obj.last_offline_at = now_time
+            prev_reason = ip_obj.discovery_reason
+            method_str = prev_reason.replace('Detected via ', '') if prev_reason else 'Unknown Method'
+            time_str = now_time.strftime('%Y-%m-%d %H:%M')
+            ip_obj.discovery_reason = f"Last seen on {time_str} via {method_str}"
+        elif ip_obj.status == 'offline':
+            if ip_obj.last_offline_at:
+                delta = now_time - ip_obj.last_offline_at
+                if delta.total_seconds() / 3600 >= settings.offline_timeout_hours:
+                    ip_obj.status = 'available'
+                    ip_obj.last_offline_at = None
+        elif ip_obj.status == 'reserved':
+            if ip_obj.reserved_at:
+                delta = now_time - ip_obj.reserved_at
+                if delta.total_seconds() / 3600 >= settings.reservation_timeout_hours:
+                    ip_obj.status = 'available'
+                    ip_obj.reserved_at = None
+                    ip_obj.assigned_to = None
+                    ip_obj.hostname = ''
+                    ip_obj.discovery_reason = "Reservation Expired (Auto-released)"
+                    AuditLog.objects.create(
+                        action='SYSTEM',
+                        model_name='IPAddress',
+                        message=f"Reservation expired for {ip_obj.ip_address}. Automatically released back to pool."
+                    )
+        else:
+            if ip_obj.status != 'available':
+                ip_obj.status = 'available'
+
+    ip_obj.last_checked = now_time
+
 def perform_discovery(subnets_queryset):
     settings = SystemSettings.load()
-    
+    now_time = timezone.now()
+
     for subnet in subnets_queryset:
         methods = list(subnet.check_methods.filter(is_active=True))
         if not methods:
             methods = list(CheckMethod.objects.filter(is_active=True))
-            
+
         net = ipaddress.ip_network(subnet.network_address, strict=False)
         hosts = list(net.hosts())
         if len(hosts) > 65536:
             hosts = hosts[:65536]
-        
+
         ip_strs = [str(host) for host in hosts]
-        results = []
-    
+        results_map = {}
+
+        # 1. Parallel live discovery of all subnet hosts
         with concurrent.futures.ThreadPoolExecutor(max_workers=150) as executor:
             futures = {executor.submit(scan_single_host, ip, methods): ip for ip in ip_strs}
             for future in concurrent.futures.as_completed(futures):
-                results.append(future.result())
-            
-        for ip_str, final_status, reason, os_name, mac_address, open_ports_str in results:
-            defaults = {'subnet': subnet, 'status': final_status, 'discovery_reason': reason, 'open_ports': open_ports_str}
-            if os_name: defaults['os_name'] = os_name
-            if mac_address: defaults['mac_address'] = mac_address
-            ip_obj, created = IPAddress.objects.get_or_create(
-                ip_address=ip_str,
-                defaults=defaults
-            )
-            
-            # Update dynamically if changed
-            if os_name and ip_obj.os_name != os_name:
-                ip_obj.os_name = os_name
-            if mac_address and ip_obj.mac_address != mac_address:
-                ip_obj.mac_address = mac_address
-            if open_ports_str and ip_obj.open_ports != open_ports_str:
-                ip_obj.open_ports = open_ports_str
-            
-            # Double verification before marking offline
-            if final_status != 'used' and ip_obj.status == 'used':
-                import time
-                time.sleep(1)
-                _, retry_status, retry_reason, _, _, _ = scan_single_host(ip_str, methods)
-                if retry_status == 'used':
-                    final_status = 'used'
-                    reason = retry_reason
-        
-            needs_save = False
-            if ip_obj.status == 'static':
-                # Skip status updates for Static IPs to prevent them from going offline!
-                if final_status == 'used':
-                    ip_obj.last_seen = timezone.now()
-                    ip_obj.discovery_reason = reason
-                if needs_save or (final_status == 'used'):
-                    ip_obj.save(update_fields=['os_name', 'mac_address', 'open_ports', 'last_seen', 'discovery_reason'] if final_status == 'used' else ['os_name', 'mac_address', 'open_ports'])
-                continue
+                res = future.result()
+                results_map[res[0]] = res
 
-            if final_status == 'used':
-                if not ip_obj.first_seen:
-                    ip_obj.first_seen = timezone.now()
-                ip_obj.last_seen = timezone.now()
-                ip_obj.last_offline_at = None
-                ip_obj.discovery_reason = reason
-                ip_obj.status = 'used'
-                ip_obj.reserved_at = None
-                needs_save = True
+        # 2. Fast pre-fetch existing IPs from DB in 1 single query
+        existing_ips = {ip.ip_address: ip for ip in IPAddress.objects.filter(subnet=subnet)}
+
+        # 3. Fast Parallel Double-Verification for hosts transitioning from 'used' to offline
+        retry_ips = [
+            ip_str for ip_str in ip_strs
+            if results_map.get(ip_str) and results_map[ip_str][1] != 'used'
+            and existing_ips.get(ip_str) and existing_ips[ip_str].status == 'used'
+            and existing_ips[ip_str].status != 'static'
+        ]
+
+        if retry_ips:
+            time.sleep(1)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(100, len(retry_ips))) as retry_exec:
+                retry_futures = {retry_exec.submit(scan_single_host, ip, methods): ip for ip in retry_ips}
+                for f in concurrent.futures.as_completed(retry_futures):
+                    retry_res = f.result()
+                    if retry_res[1] == 'used':
+                        results_map[retry_res[0]] = retry_res
+
+        # 4. Batch updates in memory
+        to_create = []
+        to_update = []
+
+        for ip_str in ip_strs:
+            res = results_map.get(ip_str)
+            if not res: continue
+            _, final_status, reason, os_name, mac_address, open_ports_str = res
+
+            ip_obj = existing_ips.get(ip_str)
+            if not ip_obj:
+                new_ip = IPAddress(
+                    ip_address=ip_str,
+                    subnet=subnet,
+                    status=final_status,
+                    discovery_reason=reason,
+                    open_ports=open_ports_str,
+                    os_name=os_name or '',
+                    mac_address=mac_address or '',
+                    first_seen=now_time if final_status == 'used' else None,
+                    last_seen=now_time if final_status == 'used' else None,
+                    last_checked=now_time,
+                )
+                to_create.append(new_ip)
             else:
-                if ip_obj.status == 'used':
-                    ip_obj.status = 'offline'
-                    ip_obj.last_offline_at = timezone.now()
-                    prev_reason = ip_obj.discovery_reason
-                    method_str = prev_reason.replace('Detected via ', '') if prev_reason else 'Unknown Method'
-                    time_str = timezone.now().strftime('%Y-%m-%d %H:%M')
-                    ip_obj.discovery_reason = f"Last seen on {time_str} via {method_str}"
-                    needs_save = True
-                elif ip_obj.status == 'offline':
-                    if ip_obj.last_offline_at:
-                        delta = timezone.now() - ip_obj.last_offline_at
-                        if delta.total_seconds() / 3600 >= settings.offline_timeout_hours:
-                            ip_obj.status = 'available'
-                            ip_obj.last_offline_at = None
-                            needs_save = True
-                elif ip_obj.status == 'reserved':
-                    if ip_obj.reserved_at:
-                        delta = timezone.now() - ip_obj.reserved_at
-                        if delta.total_seconds() / 3600 >= settings.reservation_timeout_hours:
-                            ip_obj.status = 'available'
-                            ip_obj.reserved_at = None
-                            ip_obj.assigned_to = None
-                            ip_obj.hostname = ''
-                            ip_obj.discovery_reason = "Reservation Expired (Auto-released)"
-                            needs_save = True
-                            AuditLog.objects.create(
-                                action='SYSTEM',
-                                model_name='IPAddress',
-                                message=f"Reservation expired for {ip_obj.ip_address}. Automatically released back to pool."
-                            )
-                else:
-                    if ip_obj.status != 'available':
-                        ip_obj.status = 'available'
-                        needs_save = True
-        
-            ip_obj.last_checked = timezone.now()
-            ip_obj.save()
+                _process_ip_status_update(ip_obj, final_status, reason, os_name, mac_address, open_ports_str, settings, now_time)
+                to_update.append(ip_obj)
 
-        subnet.last_scanned = timezone.now()
+        # 5. Bulk database write (100x faster than individual saves)
+        if to_create:
+            IPAddress.objects.bulk_create(to_create, batch_size=500)
+        if to_update:
+            IPAddress.objects.bulk_update(to_update, [
+                'status', 'discovery_reason', 'os_name', 'mac_address',
+                'open_ports', 'last_seen', 'first_seen', 'last_offline_at',
+                'reserved_at', 'assigned_to', 'hostname', 'last_checked'
+            ], batch_size=500)
+
+        subnet.last_scanned = now_time
         subnet.save()
         AuditLog.objects.create(
             action='SCAN',
             model_name='Subnet',
             message=f"Discovery scan executed for subnet {subnet.name} ({subnet.network_address})"
         )
-    
+
         if settings.alert_on_subnet_full:
             total = subnet.ips.count()
             used = subnet.ips.filter(status='used').count()
@@ -247,69 +279,64 @@ def perform_discovery(subnets_queryset):
 
 def perform_ip_discovery(ips_queryset):
     settings = SystemSettings.load()
+    now_time = timezone.now()
 
-    for ip_obj in ips_queryset:
-        subnet = ip_obj.subnet
-        methods = list(subnet.check_methods.filter(is_active=True))
-        if not methods:
-            methods = list(CheckMethod.objects.filter(is_active=True))
+    ips_list = list(ips_queryset.select_related('subnet'))
+    if not ips_list:
+        return
 
-        ip_str = ip_obj.ip_address
-        _, final_status, reason, os_name, mac_address, open_ports_str = scan_single_host(ip_str, methods)
-        ip_obj.open_ports = open_ports_str
-        if os_name: ip_obj.os_name = os_name
-        if mac_address: ip_obj.mac_address = mac_address
+    # Cache methods per subnet
+    subnet_methods = {}
+    for ip_obj in ips_list:
+        if ip_obj.subnet_id not in subnet_methods:
+            methods = list(ip_obj.subnet.check_methods.filter(is_active=True)) if ip_obj.subnet else []
+            if not methods:
+                methods = list(CheckMethod.objects.filter(is_active=True))
+            subnet_methods[ip_obj.subnet_id] = methods
 
-        old_status = ip_obj.status
-        
-        # Double verification before marking offline
-        if final_status != 'used' and old_status == 'used':
-            import time
-            time.sleep(1)
-            _, retry_status, retry_reason, _, _, _ = scan_single_host(ip_str, methods)
-            if retry_status == 'used':
-                final_status = 'used'
-                reason = retry_reason
-                
-        if final_status == 'used':
-            if not ip_obj.first_seen:
-                ip_obj.first_seen = timezone.now()
-            ip_obj.last_seen = timezone.now()
-            ip_obj.last_offline_at = None
-            ip_obj.discovery_reason = reason
-            ip_obj.status = 'used'
-            ip_obj.reserved_at = None
-        else:
-            if old_status == 'used':
-                ip_obj.status = 'offline'
-                ip_obj.last_offline_at = timezone.now()
+    # 1. Concurrent scan across all selected IPs
+    results_map = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(100, len(ips_list))) as executor:
+        futures = {
+            executor.submit(scan_single_host, ip_obj.ip_address, subnet_methods.get(ip_obj.subnet_id, [])): ip_obj
+            for ip_obj in ips_list
+        }
+        for future in concurrent.futures.as_completed(futures):
+            res = future.result()
+            results_map[res[0]] = res
 
-                prev_reason = ip_obj.discovery_reason
-                method_str = prev_reason.replace('Detected via ', '') if prev_reason else 'Unknown Method'
-                time_str = timezone.now().strftime('%Y-%m-%d %H:%M')
-                ip_obj.discovery_reason = f"Last seen on {time_str} via {method_str}"
-            elif old_status == 'offline':
-                if ip_obj.last_offline_at:
-                    delta = timezone.now() - ip_obj.last_offline_at
-                    if delta.total_seconds() / 3600 >= settings.offline_timeout_hours:
-                        ip_obj.status = 'available'
-                        ip_obj.last_offline_at = None
-            elif old_status == 'reserved':
-                if ip_obj.reserved_at:
-                    delta = timezone.now() - ip_obj.reserved_at
-                    if delta.total_seconds() / 3600 >= settings.reservation_timeout_hours:
-                        ip_obj.status = 'available'
-                        ip_obj.reserved_at = None
-                        ip_obj.assigned_to = None
-                        ip_obj.hostname = ''
-                        ip_obj.discovery_reason = "Reservation Expired (Auto-released)"
-                        AuditLog.objects.create(
-                            action='SYSTEM',
-                            model_name='IPAddress',
-                            message=f"Reservation expired for {ip_obj.ip_address}. Automatically released back to pool."
-                        )
-            else:
-                ip_obj.status = 'available'
+    # 2. Parallel retry for any IP transitioning from used to offline
+    retry_ips = [
+        ip_obj.ip_address for ip_obj in ips_list
+        if results_map.get(ip_obj.ip_address) and results_map[ip_obj.ip_address][1] != 'used'
+        and ip_obj.status == 'used' and ip_obj.status != 'static'
+    ]
 
-        ip_obj.last_checked = timezone.now()
-        ip_obj.save()
+    if retry_ips:
+        time.sleep(1)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(100, len(retry_ips))) as retry_exec:
+            retry_futures = {
+                retry_exec.submit(scan_single_host, ip_str, subnet_methods.get(next((ip.subnet_id for ip in ips_list if ip.ip_address == ip_str), None), [])): ip_str
+                for ip_str in retry_ips
+            }
+            for f in concurrent.futures.as_completed(retry_futures):
+                retry_res = f.result()
+                if retry_res[1] == 'used':
+                    results_map[retry_res[0]] = retry_res
+
+    # 3. Update objects in memory and bulk update
+    to_update = []
+    for ip_obj in ips_list:
+        res = results_map.get(ip_obj.ip_address)
+        if not res: continue
+        _, final_status, reason, os_name, mac_address, open_ports_str = res
+        _process_ip_status_update(ip_obj, final_status, reason, os_name, mac_address, open_ports_str, settings, now_time)
+        to_update.append(ip_obj)
+
+    if to_update:
+        IPAddress.objects.bulk_update(to_update, [
+            'status', 'discovery_reason', 'os_name', 'mac_address',
+            'open_ports', 'last_seen', 'first_seen', 'last_offline_at',
+            'reserved_at', 'assigned_to', 'hostname', 'last_checked'
+        ], batch_size=500)
+
