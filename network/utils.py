@@ -4,7 +4,7 @@ import ipaddress
 import concurrent.futures
 import time
 from django.utils import timezone
-from .models import IPAddress, AuditLog, CheckMethod, SystemSettings
+from .models import Subnet, IPAddress, AuditLog, CheckMethod, SystemSettings
 import platform
 
 def check_port(ip, port, timeout=0.3):
